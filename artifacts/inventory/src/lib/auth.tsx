@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
-  login: (profile: Profile) => void;
+  login: (profile: Profile, redirect?: string) => void;
   logout: () => void;
 }
 
@@ -33,9 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
-  const login = (newProfile: Profile) => {
+  const login = (newProfile: Profile, redirect?: string) => {
     setProfile(newProfile);
-    setLocation("/dashboard");
+    setLocation(redirect || "/dashboard");
   };
 
   const logout = () => {

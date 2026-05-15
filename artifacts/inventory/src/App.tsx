@@ -35,7 +35,8 @@ function ProtectedRoute({ component: Component, roles }: { component: React.Comp
   }
 
   if (!profile) {
-    return <Redirect to="/sign-in" />;
+    const dest = encodeURIComponent(window.location.pathname + window.location.search);
+    return <Redirect to={`/sign-in?redirect=${dest}`} />;
   }
 
   if (roles && !roles.includes(profile.role)) {

@@ -13,6 +13,8 @@ export function SignIn() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const redirectTo = new URLSearchParams(window.location.search).get("redirect") || "/dashboard";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -27,7 +29,7 @@ export function SignIn() {
       if (!res.ok) throw new Error("Invalid credentials");
 
       const data = await res.json();
-      login(data.profile ?? data);
+      login(data.profile ?? data, redirectTo);
     } catch (error) {
       toast({
         title: "Login Failed",
