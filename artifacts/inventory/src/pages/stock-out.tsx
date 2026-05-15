@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 
 const stockOutSchema = z.object({
   item_id: z.coerce.number().min(1, "Select an item"),
@@ -29,11 +29,11 @@ export function StockOut() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
+  const search = useSearch();
   const { data: items } = useListItems();
   const createMovement = useCreateStockMovement();
 
-  const searchParams = new URLSearchParams(window.location.search);
-  const itemCodeParam = searchParams.get("item_code");
+  const itemCodeParam = new URLSearchParams(search).get("item_code");
 
   const { data: scannedItem } = useGetItemByCode(itemCodeParam || "", {
     query: { enabled: !!itemCodeParam, queryKey: getGetItemByCodeQueryKey(itemCodeParam || "") }
