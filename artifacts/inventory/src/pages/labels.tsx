@@ -83,13 +83,22 @@ function infoLine(label: string, value: string | null | undefined): Paragraph {
   });
 }
 
+// Layout constants (US Letter 8.5" − 2×0.5" margins = 7.5" available)
+// 2 labels per row: each label 3.55", gap 0.2", total 7.3"
+const LABEL_W = 3.55;   // outer label cell width (inches)
+const GAP_W   = 0.2;    // gap cell between two labels
+const INNER_W = 3.3;    // inner table (label − L/R cell margins)
+const LEFT_W  = 2.05;   // text column
+const RIGHT_W = 1.2;    // QR + photo column
+const PHOTO_W = 1.1;    // photo placeholder box
+
 async function buildLabelCell(item: Item): Promise<DocxTableCell> {
   const qrB64 = await qrToBase64(`${window.location.origin}/stock-out?item_code=${item.item_code}`);
   const qrData = base64ToUint8Array(qrB64);
 
   // Right column: QR + photo box stacked
   const rightCol = new DocxTableCell({
-    width: { size: convertInchesToTwip(1.4), type: WidthType.DXA },
+    width: { size: convertInchesToTwip(RIGHT_W), type: WidthType.DXA },
     borders: noBorder,
     verticalAlign: VerticalAlign.TOP,
     children: [
@@ -100,25 +109,25 @@ async function buildLabelCell(item: Item): Promise<DocxTableCell> {
         children: [
           new ImageRun({
             data: qrData,
-            transformation: { width: 90, height: 90 },
+            transformation: { width: 80, height: 80 },
             type: "png",
           }),
         ],
       }),
-      // Photo placeholder — dashed bordered box
       new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { before: 0, after: 0 },
         children: [new TextRun({ text: "" })],
       }),
+      // Photo placeholder — dashed bordered box
       new DocxTable({
-        width: { size: convertInchesToTwip(1.2), type: WidthType.DXA },
+        width: { size: convertInchesToTwip(PHOTO_W), type: WidthType.DXA },
         rows: [
           new DocxTableRow({
-            height: { value: convertInchesToTwip(1.1), rule: HeightRule.EXACT },
+            height: { value: convertInchesToTwip(0.95), rule: HeightRule.EXACT },
             children: [
               new DocxTableCell({
-                width: { size: convertInchesToTwip(1.2), type: WidthType.DXA },
+                width: { size: convertInchesToTwip(PHOTO_W), type: WidthType.DXA },
                 borders: photoBorder,
                 shading: { type: ShadingType.SOLID, color: "F8F8F8", fill: "F8F8F8" },
                 verticalAlign: VerticalAlign.CENTER,
@@ -126,7 +135,7 @@ async function buildLabelCell(item: Item): Promise<DocxTableCell> {
                   new Paragraph({
                     alignment: AlignmentType.CENTER,
                     children: [
-                      new TextRun({ text: "📷 PHOTO", size: 18, color: "AAAAAA", font: "Calibri" }),
+                      new TextRun({ text: "PHOTO", size: 16, color: "AAAAAA", font: "Calibri" }),
                     ],
                   }),
                 ],
@@ -140,20 +149,20 @@ async function buildLabelCell(item: Item): Promise<DocxTableCell> {
 
   // Left column: all text info
   const leftCol = new DocxTableCell({
-    width: { size: convertInchesToTwip(2.8), type: WidthType.DXA },
+    width: { size: convertInchesToTwip(LEFT_W), type: WidthType.DXA },
     borders: noBorder,
     verticalAlign: VerticalAlign.TOP,
     children: [
       new Paragraph({
         spacing: { after: 30 },
         children: [
-          new TextRun({ text: item.item_code, bold: true, size: 26, font: "Calibri", color: "1a1a1a" }),
+          new TextRun({ text: item.item_code, bold: true, size: 24, font: "Calibri", color: "1a1a1a" }),
         ],
       }),
       new Paragraph({
         spacing: { after: 40 },
         children: [
-          new TextRun({ text: item.item_name, bold: true, size: 20, font: "Calibri", color: "333333" }),
+          new TextRun({ text: item.item_name, bold: true, size: 18, font: "Calibri", color: "333333" }),
         ],
       }),
       infoLine("Category", item.category),
@@ -167,7 +176,7 @@ async function buildLabelCell(item: Item): Promise<DocxTableCell> {
 
   // Inner label table (2 cols: text | QR+photo)
   const innerTable = new DocxTable({
-    width: { size: convertInchesToTwip(4.35), type: WidthType.DXA },
+    width: { size: convertInchesToTwip(INNER_W), type: WidthType.DXA },
     rows: [
       new DocxTableRow({
         children: [leftCol, rightCol],
@@ -177,12 +186,12 @@ async function buildLabelCell(item: Item): Promise<DocxTableCell> {
 
   // Outer label cell with visible border
   return new DocxTableCell({
-    width: { size: convertInchesToTwip(4.5), type: WidthType.DXA },
+    width: { size: convertInchesToTwip(LABEL_W), type: WidthType.DXA },
     borders: thinBorder,
     margins: {
       top: convertInchesToTwip(0.1),
       bottom: convertInchesToTwip(0.1),
-      left: convertInchesToTwip(0.12),
+      left: convertInchesToTwip(0.1),
       right: convertInchesToTwip(0.08),
     },
     children: [innerTable],
@@ -203,7 +212,7 @@ async function exportToWord(items: Item[]) {
   for (let i = 0; i < items.length; i += 2) {
     const leftCell = await buildLabelCell(items[i]);
     const gapCell = new DocxTableCell({
-      width: { size: convertInchesToTwip(0.3), type: WidthType.DXA },
+      width: { size: convertInchesToTwip(GAP_W), type: WidthType.DXA },
       borders: noBorder,
       children: [new Paragraph({ children: [] })],
     });
@@ -245,7 +254,7 @@ async function exportToWord(items: Item[]) {
             ],
           }),
           new DocxTable({
-            width: { size: convertInchesToTwip(9.3), type: WidthType.DXA },
+            width: { size: convertInchesToTwip(LABEL_W * 2 + GAP_W), type: WidthType.DXA },
             rows,
           }),
         ],
