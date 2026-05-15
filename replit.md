@@ -1,4 +1,4 @@
-# Inventory OS
+# WYMY Facility Inventory System
 
 A role-based inventory management system for tracking stock, movements, alerts, reports, and rack labels.
 

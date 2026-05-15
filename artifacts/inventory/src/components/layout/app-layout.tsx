@@ -33,7 +33,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <div className="flex h-screen w-full overflow-hidden bg-gray-50/50">
         <Sidebar>
           <SidebarHeader className="h-16 flex items-center px-4 border-b border-sidebar-border bg-sidebar text-sidebar-foreground">
-            <div className="font-bold text-lg tracking-tight">Inventory OS</div>
+            <div className="font-bold text-lg tracking-tight">WYMY Facility Inventory System</div>
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
