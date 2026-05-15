@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch } from "wouter";
+import { ItemCombobox } from "@/components/item-combobox";
 
 const stockOutSchema = z.object({
   item_id: z.coerce.number().min(1, "Select an item"),
@@ -93,20 +93,15 @@ export function StockOut() {
               <FormField control={form.control} name="item_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Item *</FormLabel>
-                  <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an item" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {items?.map(item => (
-                        <SelectItem key={item.id} value={String(item.id)}>
-                          {item.item_code} - {item.item_name} ({item.current_stock} in stock)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <ItemCombobox
+                      items={items}
+                      value={field.value}
+                      onChange={field.onChange}
+                      showStock
+                      placeholder="Search by code, name or category…"
+                    />
+                  </FormControl>
                   {selectedItem && (
                     <p className="text-sm text-muted-foreground mt-1">Current Stock: {selectedItem.current_stock} {selectedItem.unit}</p>
                   )}
