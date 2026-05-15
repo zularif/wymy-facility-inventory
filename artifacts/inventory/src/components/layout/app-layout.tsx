@@ -1,19 +1,21 @@
-import { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
-import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, History, Scale, AlertTriangle, FileText, Tags, ShieldAlert, Users, LogOut } from "lucide-react";
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
+import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, History, Scale, AlertTriangle, FileText, Tags, ShieldAlert, Users, LogOut, KeyRound } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { profile, logout } = useAuth();
   const [location] = useLocation();
+  const [changePwOpen, setChangePwOpen] = useState(false);
 
   if (!profile) return <>{children}</>;
 
   const role = profile.role;
 
   const links = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "storekeeper", "viewer"] },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "storekeeper", "viewer", "technician"] },
     { href: "/items", label: "Item Master", icon: Package, roles: ["admin", "storekeeper"] },
     { href: "/stock-in", label: "Stock In", icon: ArrowDownToLine, roles: ["admin", "storekeeper"] },
     { href: "/stock-out", label: "Stock Out", icon: ArrowUpFromLine, roles: ["admin", "storekeeper", "technician"] },
@@ -51,13 +53,26 @@ export function AppLayout({ children }: { children: ReactNode }) {
               })}
             </SidebarMenu>
           </SidebarContent>
-          <SidebarFooter className="border-t border-sidebar-border p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col truncate">
-                <span className="text-sm font-medium truncate">{profile.full_name || profile.email}</span>
-                <span className="text-xs text-muted-foreground capitalize">{profile.role}</span>
-              </div>
-              <button onClick={logout} className="p-2 text-muted-foreground hover:text-foreground rounded-md hover:bg-sidebar-accent transition-colors" title="Log out" data-testid="button-logout">
+          <SidebarFooter className="border-t border-sidebar-border p-4 space-y-2">
+            <div className="flex flex-col truncate">
+              <span className="text-sm font-medium truncate">{profile.full_name || profile.email}</span>
+              <span className="text-xs text-muted-foreground capitalize">{profile.role}</span>
+            </div>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setChangePwOpen(true)}
+                className="flex-1 flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-sidebar-accent transition-colors"
+                title="Change password"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                Change Password
+              </button>
+              <button
+                onClick={logout}
+                className="p-2 text-muted-foreground hover:text-foreground rounded-md hover:bg-sidebar-accent transition-colors"
+                title="Log out"
+                data-testid="button-logout"
+              >
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
@@ -69,6 +84,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </main>
       </div>
+
+      <ChangePasswordDialog open={changePwOpen} onClose={() => setChangePwOpen(false)} />
     </SidebarProvider>
   );
 }
