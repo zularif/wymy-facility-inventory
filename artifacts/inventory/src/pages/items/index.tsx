@@ -1,20 +1,22 @@
 import { useState, useMemo } from "react";
 import { useListItems, useImportItems, useDeactivateItem } from "@workspace/api-client-react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { exportToExcel, parseExcel } from "@/lib/excel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink, PaginationEllipsis } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Upload, QrCode, Search, Image as ImageIcon, Edit, Trash, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
 import QRCode from "qrcode";
 
 type SortKey = "code" | "category" | "status";
 type SortDir = "asc" | "desc";
+
+const PAGE_SIZE = 25;
 
 const naturalCompare = (a: string, b: string) =>
   a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
@@ -24,7 +26,13 @@ export function ItemsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("code");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [page, setPage] = useState(1);
+
   const { data: items, isLoading, refetch } = useListItems({ search });
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const { toast } = useToast();
+  const importItems = useImportItems();
+  const deactivateItem = useDeactivateItem();
 
   const categories = useMemo(() => {
     if (!items) return [];
@@ -32,7 +40,7 @@ export function ItemsPage() {
   }, [items]);
 
   const sortedItems = useMemo(() => {
-    if (!items) return items;
+    if (!items) return [];
     const filtered = categoryFilter === "all" ? items : items.filter(i => i.category === categoryFilter);
     return [...filtered].sort((a, b) => {
       let cmp = 0;
@@ -49,6 +57,10 @@ export function ItemsPage() {
     });
   }, [items, sortKey, sortDir, categoryFilter]);
 
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = sortedItems.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -56,6 +68,17 @@ export function ItemsPage() {
       setSortKey(key);
       setSortDir("asc");
     }
+    setPage(1);
+  };
+
+  const handleCategoryFilter = (val: string) => {
+    setCategoryFilter(val);
+    setPage(1);
+  };
+
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    setPage(1);
   };
 
   const SortIcon = ({ col }: { col: SortKey }) => {
@@ -64,10 +87,6 @@ export function ItemsPage() {
       ? <ChevronUp className="inline w-3 h-3 ml-1" />
       : <ChevronDown className="inline w-3 h-3 ml-1" />;
   };
-  const [isImportOpen, setIsImportOpen] = useState(false);
-  const { toast } = useToast();
-  const importItems = useImportItems();
-  const deactivateItem = useDeactivateItem();
 
   const handleExport = () => {
     if (!items) return;
@@ -83,7 +102,7 @@ export function ItemsPage() {
       toast({ title: "Import successful" });
       setIsImportOpen(false);
       refetch();
-    } catch (error) {
+    } catch {
       toast({ title: "Import failed", variant: "destructive" });
     }
   };
@@ -105,7 +124,27 @@ export function ItemsPage() {
     }
   };
 
+  // Build page numbers to display (max 5 visible pages with ellipsis)
+  const pageNumbers = useMemo(() => {
+    const pages: (number | "...")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (safePage > 3) pages.push("...");
+      for (let i = Math.max(2, safePage - 1); i <= Math.min(totalPages - 1, safePage + 1); i++) {
+        pages.push(i);
+      }
+      if (safePage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  }, [totalPages, safePage]);
+
   if (isLoading) return <div className="p-8">Loading items...</div>;
+
+  const start = sortedItems.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(safePage * PAGE_SIZE, sortedItems.length);
 
   return (
     <div className="space-y-6">
@@ -134,18 +173,18 @@ export function ItemsPage() {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-4 flex-wrap">
+      <div className="flex gap-3 flex-wrap items-center">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search items..." 
-            className="pl-9" 
+          <Input
+            placeholder="Search items..."
+            className="pl-9"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             data-testid="input-search"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+        <Select value={categoryFilter} onValueChange={handleCategoryFilter}>
           <SelectTrigger className="w-[180px]" data-testid="select-category">
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
@@ -158,12 +197,15 @@ export function ItemsPage() {
         </Select>
         {categoryFilter !== "all" && (
           <button
-            onClick={() => setCategoryFilter("all")}
-            className="text-sm text-muted-foreground hover:text-foreground underline self-center"
+            onClick={() => handleCategoryFilter("all")}
+            className="text-sm text-muted-foreground hover:text-foreground underline"
           >
             Clear
           </button>
         )}
+        <span className="ml-auto text-sm text-muted-foreground">
+          {sortedItems.length === 0 ? "No items" : `Showing ${start}–${end} of ${sortedItems.length}`}
+        </span>
       </div>
 
       <div className="border rounded-md">
@@ -186,11 +228,11 @@ export function ItemsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedItems?.length === 0 ? (
+            {pageItems.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No items found</TableCell>
               </TableRow>
-            ) : sortedItems?.map((item) => (
+            ) : pageItems.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.item_code}</TableCell>
                 <TableCell>{item.item_name}</TableCell>
@@ -225,6 +267,44 @@ export function ItemsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => { e.preventDefault(); if (safePage > 1) setPage(safePage - 1); }}
+                className={safePage === 1 ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+            {pageNumbers.map((p, i) =>
+              p === "..." ? (
+                <PaginationItem key={`ellipsis-${i}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={p}>
+                  <PaginationLink
+                    href="#"
+                    isActive={p === safePage}
+                    onClick={(e) => { e.preventDefault(); setPage(p as number); }}
+                  >
+                    {p}
+                  </PaginationLink>
+                </PaginationItem>
+              )
+            )}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => { e.preventDefault(); if (safePage < totalPages) setPage(safePage + 1); }}
+                className={safePage === totalPages ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
 
       <Dialog open={isQrOpen} onOpenChange={setIsQrOpen}>
         <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-8">
