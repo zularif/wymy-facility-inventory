@@ -111,7 +111,8 @@ export function ItemsPage() {
   const [isQrOpen, setIsQrOpen] = useState(false);
 
   const showQr = async (itemCode: string) => {
-    const url = await QRCode.toDataURL(`/stock-out?item_code=${itemCode}`);
+    const fullUrl = `${window.location.origin}/stock-out?item_code=${itemCode}`;
+    const url = await QRCode.toDataURL(fullUrl);
     setQrCodeUrl(url);
     setIsQrOpen(true);
   };

@@ -71,7 +71,7 @@ function infoLine(label: string, value: string | null | undefined): Paragraph {
 }
 
 async function buildLabelCell(item: Item): Promise<DocxTableCell> {
-  const qrB64 = await qrToBase64(`/stock-out?item_code=${item.item_code}`);
+  const qrB64 = await qrToBase64(`${window.location.origin}/stock-out?item_code=${item.item_code}`);
   const qrData = base64ToUint8Array(qrB64);
 
   // Right column: QR + photo box stacked
@@ -287,7 +287,7 @@ export function Labels() {
       const y = marginY + row * (labelH + gapY);
 
       doc.rect(x, y, labelW, labelH);
-      const qrDataUrl = await QRCode.toDataURL(`/stock-out?item_code=${item.item_code}`, { margin: 1 });
+      const qrDataUrl = await QRCode.toDataURL(`${window.location.origin}/stock-out?item_code=${item.item_code}`, { margin: 1 });
       doc.addImage(qrDataUrl, "PNG", x + labelW - 35, y + 5, 28, 28);
 
       // Photo box placeholder
