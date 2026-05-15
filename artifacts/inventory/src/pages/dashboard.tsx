@@ -32,11 +32,16 @@ export function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Low Stock Alerts</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Stock Alerts</CardTitle>
               <AlertTriangle className="h-4 w-4 text-amber-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-amber-600">{summary.low_stock_count}</div>
+              <div className="text-2xl font-bold text-amber-600">
+                {(summary.low_stock_count ?? 0) + (summary.out_of_stock_count ?? 0)}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {summary.low_stock_count ?? 0} low stock · {summary.out_of_stock_count ?? 0} zero stock
+              </p>
             </CardContent>
           </Card>
           <Card>
