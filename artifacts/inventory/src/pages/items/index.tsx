@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Upload, QrCode, Search, Image as ImageIcon, Edit, Trash, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import QRCode from "qrcode";
 
@@ -20,13 +21,20 @@ const naturalCompare = (a: string, b: string) =>
 
 export function ItemsPage() {
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("code");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const { data: items, isLoading, refetch } = useListItems({ search });
 
+  const categories = useMemo(() => {
+    if (!items) return [];
+    return [...new Set(items.map(i => i.category).filter(Boolean))].sort() as string[];
+  }, [items]);
+
   const sortedItems = useMemo(() => {
     if (!items) return items;
-    return [...items].sort((a, b) => {
+    const filtered = categoryFilter === "all" ? items : items.filter(i => i.category === categoryFilter);
+    return [...filtered].sort((a, b) => {
       let cmp = 0;
       if (sortKey === "code") {
         cmp = naturalCompare(a.item_code ?? "", b.item_code ?? "");
@@ -126,8 +134,8 @@ export function ItemsPage() {
         </div>
       </div>
 
-      <div className="flex gap-4 mb-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex gap-3 mb-4 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input 
             placeholder="Search items..." 
@@ -137,6 +145,25 @@ export function ItemsPage() {
             data-testid="input-search"
           />
         </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[180px]" data-testid="select-category">
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map(cat => (
+              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {categoryFilter !== "all" && (
+          <button
+            onClick={() => setCategoryFilter("all")}
+            className="text-sm text-muted-foreground hover:text-foreground underline self-center"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       <div className="border rounded-md">
