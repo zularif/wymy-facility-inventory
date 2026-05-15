@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useListItems, useImportItems, useDeactivateItem } from "@workspace/api-client-react";
 import { Link, useLocation } from "wouter";
 import { exportToExcel, parseExcel } from "@/lib/excel";
@@ -8,12 +8,44 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Download, Upload, QrCode, Search, Image as ImageIcon, Edit, Trash } from "lucide-react";
+import { Plus, Download, Upload, QrCode, Search, Image as ImageIcon, Edit, Trash, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+
 import QRCode from "qrcode";
+
+type SortKey = "category" | "status";
+type SortDir = "asc" | "desc";
 
 export function ItemsPage() {
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const { data: items, isLoading, refetch } = useListItems({ search });
+
+  const sortedItems = useMemo(() => {
+    if (!items || !sortKey) return items;
+    return [...items].sort((a, b) => {
+      const aVal = (sortKey === "category" ? a.category : a.stock_status) ?? "";
+      const bVal = (sortKey === "category" ? b.category : b.stock_status) ?? "";
+      const cmp = aVal.localeCompare(bVal);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [items, sortKey, sortDir]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: SortKey }) => {
+    if (sortKey !== col) return <ChevronsUpDown className="inline w-3 h-3 ml-1 text-muted-foreground" />;
+    return sortDir === "asc"
+      ? <ChevronUp className="inline w-3 h-3 ml-1" />
+      : <ChevronDown className="inline w-3 h-3 ml-1" />;
+  };
   const [isImportOpen, setIsImportOpen] = useState(false);
   const { toast } = useToast();
   const importItems = useImportItems();
@@ -103,19 +135,23 @@ export function ItemsPage() {
             <TableRow>
               <TableHead>Code</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("category")}>
+                Category<SortIcon col="category" />
+              </TableHead>
               <TableHead>Location</TableHead>
               <TableHead className="text-right">Current Stock</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("status")}>
+                Status<SortIcon col="status" />
+              </TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items?.length === 0 ? (
+            {sortedItems?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No items found</TableCell>
               </TableRow>
-            ) : items?.map((item) => (
+            ) : sortedItems?.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.item_code}</TableCell>
                 <TableCell>{item.item_name}</TableCell>
