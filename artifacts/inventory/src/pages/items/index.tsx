@@ -47,7 +47,7 @@ export function ItemsPage() {
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [items, sortKey, sortDir]);
+  }, [items, sortKey, sortDir, categoryFilter]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
