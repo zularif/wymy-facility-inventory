@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useListItems } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Printer, FileText, Search } from "lucide-react";
+
 import QRCode from "qrcode";
 import jsPDF from "jspdf";
 import {
@@ -26,6 +28,17 @@ import {
 } from "docx";
 
 type Item = NonNullable<ReturnType<typeof useListItems>["data"]>[number];
+
+const naturalCompare = (a: string, b: string) =>
+  a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+
+function sortByCategory(items: Item[]): Item[] {
+  return [...items].sort((a, b) => {
+    const cat = naturalCompare(a.category ?? "", b.category ?? "");
+    if (cat !== 0) return cat;
+    return naturalCompare(a.item_code ?? "", b.item_code ?? "");
+  });
+}
 
 async function qrToBase64(text: string): Promise<string> {
   const dataUrl = await QRCode.toDataURL(text, { margin: 1, width: 180 });
@@ -251,15 +264,27 @@ async function exportToWord(items: Item[]) {
 
 export function Labels() {
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const { data: items, isLoading } = useListItems({ search });
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [wordExporting, setWordExporting] = useState(false);
 
+  const categories = useMemo(() => {
+    if (!items) return [];
+    return [...new Set(items.map(i => i.category).filter(Boolean))].sort() as string[];
+  }, [items]);
+
+  const displayItems = useMemo(() => {
+    if (!items) return [];
+    const filtered = categoryFilter === "all" ? items : items.filter(i => i.category === categoryFilter);
+    return sortByCategory(filtered);
+  }, [items, categoryFilter]);
+
   const toggleSelectAll = () => {
-    if (selectedIds.size === items?.length) {
+    if (displayItems.length > 0 && selectedIds.size === displayItems.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(items?.map(i => i.id)));
+      setSelectedIds(new Set(displayItems.map(i => i.id)));
     }
   };
 
@@ -273,7 +298,7 @@ export function Labels() {
   const printPDF = async () => {
     if (!items || selectedIds.size === 0) return;
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const selectedItems = items.filter(i => selectedIds.has(i.id));
+    const selectedItems = sortByCategory(items.filter(i => selectedIds.has(i.id)));
 
     const labelW = 95, labelH = 65, marginX = 10, marginY = 15, gapY = 5;
 
@@ -323,7 +348,7 @@ export function Labels() {
     if (!items || selectedIds.size === 0) return;
     setWordExporting(true);
     try {
-      const selectedItems = items.filter(i => selectedIds.has(i.id));
+      const selectedItems = sortByCategory(items.filter(i => selectedIds.has(i.id)));
       await exportToWord(selectedItems);
     } finally {
       setWordExporting(false);
@@ -350,8 +375,8 @@ export function Labels() {
         </div>
       </div>
 
-      <div className="flex gap-4 mb-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex gap-3 mb-4 flex-wrap items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search items to label..."
@@ -360,6 +385,28 @@ export function Labels() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <Select value={categoryFilter} onValueChange={(val) => { setCategoryFilter(val); setSelectedIds(new Set()); }}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map(cat => (
+              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {categoryFilter !== "all" && (
+          <button
+            onClick={() => { setCategoryFilter("all"); setSelectedIds(new Set()); }}
+            className="text-sm text-muted-foreground hover:text-foreground underline"
+          >
+            Clear
+          </button>
+        )}
+        <span className="ml-auto text-sm text-muted-foreground">
+          {selectedIds.size > 0 ? `${selectedIds.size} selected` : `${displayItems.length} items`}
+        </span>
       </div>
 
       <div className="border rounded-md h-[500px] overflow-auto">
@@ -368,17 +415,18 @@ export function Labels() {
             <TableRow>
               <TableHead className="w-12">
                 <Checkbox
-                  checked={items?.length! > 0 && selectedIds.size === items?.length}
+                  checked={displayItems.length > 0 && selectedIds.size === displayItems.length}
                   onCheckedChange={toggleSelectAll}
                 />
               </TableHead>
               <TableHead>Code</TableHead>
               <TableHead>Name</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead>Location</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items?.map((item) => (
+            {displayItems.map((item) => (
               <TableRow key={item.id} className="cursor-pointer" onClick={() => toggleSelect(item.id)}>
                 <TableCell onClick={e => e.stopPropagation()}>
                   <Checkbox
@@ -388,6 +436,7 @@ export function Labels() {
                 </TableCell>
                 <TableCell className="font-medium">{item.item_code}</TableCell>
                 <TableCell>{item.item_name}</TableCell>
+                <TableCell>{item.category || "—"}</TableCell>
                 <TableCell>{item.location || "—"}</TableCell>
               </TableRow>
             ))}
