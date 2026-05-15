@@ -17,10 +17,7 @@ const stockOutSchema = z.object({
   item_id: z.coerce.number().min(1, "Select an item"),
   quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
   movement_date: z.string().min(1, "Required"),
-  reference_no: z.string().optional(),
-  department: z.string().optional(),
   requested_by: z.string().optional(),
-  issued_by: z.string().optional(),
   purpose: z.string().optional(),
   remarks: z.string().optional(),
 });
@@ -45,10 +42,7 @@ export function StockOut() {
       item_id: 0,
       quantity: 1,
       movement_date: new Date().toISOString().split('T')[0],
-      reference_no: "",
-      department: "",
       requested_by: "",
-      issued_by: "",
       purpose: "",
       remarks: "",
     },
@@ -138,9 +132,9 @@ export function StockOut() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="department" render={({ field }) => (
+                <FormField control={form.control} name="requested_by" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Department</FormLabel>
+                    <FormLabel>Requested By</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
@@ -153,31 +147,6 @@ export function StockOut() {
                   </FormItem>
                 )} />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="requested_by" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Requested By</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="issued_by" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Issued By</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
-
-              <FormField control={form.control} name="reference_no" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reference No. / Work Order</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
 
               <FormField control={form.control} name="remarks" render={({ field }) => (
                 <FormItem>
