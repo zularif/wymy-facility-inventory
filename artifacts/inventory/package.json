@@ -77,6 +77,7 @@
   "dependencies": {
     "@types/qrcode": "^1.5.6",
     "@types/xlsx": "^0.0.36",
+    "docx": "^9.6.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "qrcode": "^1.5.4",
