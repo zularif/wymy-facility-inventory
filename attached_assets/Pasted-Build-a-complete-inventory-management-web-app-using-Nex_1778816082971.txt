@@ -1,0 +1,286 @@
+Build a complete inventory management web app using Next.js, Supabase, and Tailwind CSS.
+
+I have zero coding experience, so make the app simple to manage and easy to deploy to Vercel.
+
+Use:
+1. Next.js for the web app
+2. Supabase for database and authentication
+3. Tailwind CSS for UI
+4. Company OneDrive photo links for item photos
+5. Excel only for import and export
+6. QR code for technician stock out
+7. PDF export for rack labels
+
+Important:
+Do not store photos inside the database.
+Do not store photos inside Excel.
+Store only photo_url in the items table.
+The actual item photos will be stored in company OneDrive.
+
+Main modules:
+1. Login
+2. Dashboard
+3. Item Master
+4. Stock In
+5. Stock Out
+6. QR Code Stock Out
+7. Current Balance
+8. Low Stock Alert
+9. Reports
+10. Excel Import
+11. Excel Export
+12. Rack Label Export
+13. Audit Log
+14. User Roles
+
+User roles:
+1. Admin
+   - can access everything
+2. Storekeeper
+   - can manage item master
+   - can stock in
+   - can stock out
+   - can export reports
+   - can export labels
+3. Technician
+   - can scan QR
+   - can submit stock out
+   - can view own stock out history
+   - cannot edit item master
+   - cannot export labels
+4. Viewer
+   - can view dashboard and reports only
+
+Database tables required:
+1. items
+2. stock_movements
+3. profiles
+4. audit_log
+
+Items table fields:
+1. id
+2. item_code
+3. item_name
+4. spec
+5. category
+6. unit
+7. location
+8. min_stock
+9. minimum_order
+10. opening_stock
+11. photo_url
+12. status
+13. created_at
+14. updated_at
+
+Stock movements table fields:
+1. id
+2. item_id
+3. movement_type
+4. quantity
+5. movement_date
+6. reference_no
+7. supplier
+8. department
+9. requested_by
+10. issued_by
+11. purpose
+12. remarks
+13. created_by
+14. created_at
+
+Profiles table fields:
+1. id
+2. email
+3. full_name
+4. role
+5. status
+6. created_at
+
+Audit log table fields:
+1. id
+2. user_id
+3. action
+4. table_name
+5. record_id
+6. description
+7. created_at
+
+Dashboard requirements:
+1. Total items
+2. Total stock quantity
+3. Low stock items
+4. Out of stock items
+5. Stock in this month
+6. Stock out this month
+7. Recent stock movements
+8. Low stock alert table
+9. Clean professional dashboard with sidebar navigation
+
+Item Master requirements:
+1. Add item
+2. Edit item
+3. Deactivate item
+4. Search item
+5. Filter by category
+6. Filter by location
+7. Filter by status
+8. Show item photo button if photo_url exists
+9. Show current stock
+10. Show stock status:
+   - OK
+   - Low Stock
+   - Out of Stock
+
+Stock In requirements:
+1. Select item
+2. Enter quantity
+3. Enter date
+4. Enter reference number
+5. Enter supplier
+6. Enter remarks
+7. Save as movement_type = IN
+8. Create audit log
+
+Stock Out requirements:
+1. Select item
+2. Enter quantity
+3. Enter date
+4. Enter reference number
+5. Enter department
+6. Enter requested_by
+7. Enter issued_by
+8. Enter purpose
+9. Enter remarks
+10. Save as movement_type = OUT
+11. Validate quantity cannot exceed current stock
+12. Create audit log
+
+QR Code Stock Out requirements:
+1. Each item should have a QR code.
+2. QR code should open:
+   /stock-out?item_code=ITEM_CODE
+3. When technician scans QR code, stock out form opens.
+4. Item details should auto load from item_code in URL.
+5. If user is not logged in, redirect to login first and return to stock out form after login.
+6. Technician only needs to enter:
+   - quantity
+   - department
+   - purpose
+   - remarks
+7. Date, time, and user should be automatic.
+8. Validate quantity cannot exceed current stock.
+9. Create stock movement with movement_type = OUT.
+10. Create audit log.
+
+Current balance calculation:
+Current Stock = opening_stock + total IN - total OUT
+
+Low stock rule:
+1. If current stock is 0 or below, show Out of Stock.
+2. If current stock is below min_stock, show Low Stock.
+3. Otherwise show OK.
+
+Reports requirements:
+1. Current stock report
+2. Stock movement history
+3. Low stock report
+4. Filter by date
+5. Filter by item
+6. Filter by category
+7. Filter by location
+8. Export reports to Excel
+
+Excel Import requirements:
+1. Import item master from Excel.
+2. Excel columns:
+   - item_code
+   - item_name
+   - spec
+   - category
+   - unit
+   - location
+   - min_stock
+   - minimum_order
+   - opening_stock
+   - photo_url
+   - status
+3. Validate duplicate item_code.
+4. Show import preview before saving.
+5. Show success and error summary after import.
+
+Excel Export requirements:
+1. Export current stock report to Excel.
+2. Export low stock report to Excel.
+3. Export stock movement history to Excel.
+4. Export item master to Excel.
+
+Rack Label Export requirements:
+Create a Labels page in the sidebar.
+
+The Labels page must allow user to:
+1. Search items
+2. Filter by category
+3. Filter by location
+4. Filter by status
+5. Select one item, multiple items, or all active items
+6. Preview labels
+7. Print labels
+8. Export labels to PDF
+
+PDF label layout:
+1. A4 portrait
+2. 8 labels per page
+3. 2 columns x 4 rows
+4. Each label around 95mm width and 65mm height
+5. Page margin around 8mm
+6. Gap around 4mm
+7. Clean black border around each label
+8. Make sure labels do not cut when printing
+
+Each rack label must include:
+1. Item code or item ID
+2. Item name
+3. Spec
+4. Category
+5. Minimum order
+6. Location
+7. QR code
+8. Item photo from photo_url
+
+Rack label QR code:
+1. Generate QR code from:
+   /stock-out?item_code=ITEM_CODE
+2. QR code size around 25mm x 25mm
+3. When scanned, it opens the stock out form with item auto selected.
+
+Rack label photo:
+1. Use photo_url from items table.
+2. Show photo on label if it can load.
+3. If photo cannot load, show placeholder image.
+4. If OneDrive image cannot be embedded into PDF because of CORS or direct image issue, show placeholder image in PDF.
+
+UI design:
+1. Modern clean dashboard
+2. Sidebar navigation
+3. KPI cards
+4. Tables with search and filters
+5. Status badges with colors
+6. Mobile responsive
+7. Simple forms
+8. Clear success and error messages
+
+Security:
+1. Use Supabase authentication.
+2. Use role based access.
+3. Protect pages based on user role.
+4. Use environment variables for Supabase URL and anon key.
+5. Do not expose service role key in frontend.
+
+Please also create:
+1. Supabase SQL setup script for all tables.
+2. Row level security policies.
+3. Sample data for testing.
+4. Environment variable example file.
+5. Step by step instructions to connect Supabase.
+6. Step by step instructions to deploy to Vercel.

@@ -1,22 +1,33 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Inventory Management API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: items
+    description: Item master operations
+  - name: stock
+    description: Stock movement operations
+  - name: profiles
+    description: User profile operations
+  - name: audit
+    description: Audit log operations
+  - name: dashboard
+    description: Dashboard summary operations
+  - name: reports
+    description: Report operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +35,488 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── DASHBOARD ──────────────────────────────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard KPI summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/recent-movements:
+    get:
+      operationId: getRecentMovements
+      tags: [dashboard]
+      summary: Get recent stock movements for the dashboard
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Recent movements list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockMovement"
+
+  /dashboard/low-stock:
+    get:
+      operationId: getDashboardLowStock
+      tags: [dashboard]
+      summary: Get low stock items for dashboard alert table
+      responses:
+        "200":
+          description: Low stock items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemWithStock"
+
+  # ── ITEMS ──────────────────────────────────────────────────────────────────
+  /items:
+    get:
+      operationId: listItems
+      tags: [items]
+      summary: List all items with current stock
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: location
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, inactive]
+      responses:
+        "200":
+          description: List of items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemWithStock"
+    post:
+      operationId: createItem
+      tags: [items]
+      summary: Create a new item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemInput"
+      responses:
+        "201":
+          description: Created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+
+  /items/categories:
+    get:
+      operationId: listCategories
+      tags: [items]
+      summary: List all distinct categories
+      responses:
+        "200":
+          description: Category list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /items/locations:
+    get:
+      operationId: listLocations
+      tags: [items]
+      summary: List all distinct locations
+      responses:
+        "200":
+          description: Location list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /items/by-code/{item_code}:
+    get:
+      operationId: getItemByCode
+      tags: [items]
+      summary: Get item by item_code (used for QR code stock-out)
+      parameters:
+        - in: path
+          name: item_code
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Item with stock
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemWithStock"
+        "404":
+          description: Not found
+
+  /items/{id}:
+    get:
+      operationId: getItem
+      tags: [items]
+      summary: Get item by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Item with stock
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemWithStock"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateItem
+      tags: [items]
+      summary: Update an item
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemUpdate"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+    delete:
+      operationId: deactivateItem
+      tags: [items]
+      summary: Deactivate an item (soft delete)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+
+  /items/import:
+    post:
+      operationId: importItems
+      tags: [items]
+      summary: Import items from parsed Excel data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemImportPayload"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+
+  # ── STOCK MOVEMENTS ────────────────────────────────────────────────────────
+  /stock-movements:
+    get:
+      operationId: listStockMovements
+      tags: [stock]
+      summary: List stock movements with optional filters
+      parameters:
+        - in: query
+          name: item_id
+          schema:
+            type: integer
+        - in: query
+          name: movement_type
+          schema:
+            type: string
+            enum: [IN, OUT]
+        - in: query
+          name: date_from
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: date_to
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: location
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Movements list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockMovement"
+    post:
+      operationId: createStockMovement
+      tags: [stock]
+      summary: Create a stock movement (IN or OUT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StockMovementInput"
+      responses:
+        "201":
+          description: Created movement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockMovement"
+        "400":
+          description: Validation error (e.g. insufficient stock)
+
+  /stock-movements/{id}:
+    get:
+      operationId: getStockMovement
+      tags: [stock]
+      summary: Get a single stock movement
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Movement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockMovement"
+
+  # ── REPORTS ────────────────────────────────────────────────────────────────
+  /reports/current-stock:
+    get:
+      operationId: getReportCurrentStock
+      tags: [reports]
+      summary: Get current stock report for all items
+      parameters:
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: location
+          schema:
+            type: string
+        - in: query
+          name: stock_status
+          schema:
+            type: string
+            enum: [OK, Low Stock, Out of Stock]
+      responses:
+        "200":
+          description: Current stock report
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemWithStock"
+
+  /reports/low-stock:
+    get:
+      operationId: getReportLowStock
+      tags: [reports]
+      summary: Get low stock report
+      responses:
+        "200":
+          description: Low stock items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemWithStock"
+
+  # ── PROFILES ───────────────────────────────────────────────────────────────
+  /profiles/me:
+    get:
+      operationId: getMyProfile
+      tags: [profiles]
+      summary: Get or create current user's profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+    patch:
+      operationId: updateMyProfile
+      tags: [profiles]
+      summary: Update current user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+  /profiles:
+    get:
+      operationId: listProfiles
+      tags: [profiles]
+      summary: List all user profiles (admin only)
+      responses:
+        "200":
+          description: Profile list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Profile"
+
+  /profiles/{id}:
+    patch:
+      operationId: updateProfile
+      tags: [profiles]
+      summary: Update a user's profile (admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+  # ── AUDIT LOG ──────────────────────────────────────────────────────────────
+  /audit-log:
+    get:
+      operationId: listAuditLog
+      tags: [audit]
+      summary: List audit log entries
+      parameters:
+        - in: query
+          name: table_name
+          schema:
+            type: string
+        - in: query
+          name: user_id
+          schema:
+            type: string
+        - in: query
+          name: date_from
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: date_to
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditLogEntry"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +524,315 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    # ── Item schemas ──────────────────────────────────────────────────────────
+    Item:
+      type: object
+      required: [id, item_code, item_name, unit, status, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+        item_code:
+          type: string
+        item_name:
+          type: string
+        spec:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        unit:
+          type: string
+        location:
+          type: ["string", "null"]
+        min_stock:
+          type: ["integer", "null"]
+        minimum_order:
+          type: ["integer", "null"]
+        opening_stock:
+          type: integer
+        photo_url:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, inactive]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ItemWithStock:
+      type: object
+      required: [id, item_code, item_name, unit, status, opening_stock, current_stock, stock_status, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+        item_code:
+          type: string
+        item_name:
+          type: string
+        spec:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        unit:
+          type: string
+        location:
+          type: ["string", "null"]
+        min_stock:
+          type: ["integer", "null"]
+        minimum_order:
+          type: ["integer", "null"]
+        opening_stock:
+          type: integer
+        photo_url:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, inactive]
+        current_stock:
+          type: integer
+        stock_status:
+          type: string
+          enum: [OK, Low Stock, Out of Stock]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ItemInput:
+      type: object
+      required: [item_code, item_name, unit]
+      properties:
+        item_code:
+          type: string
+        item_name:
+          type: string
+        spec:
+          type: string
+        category:
+          type: string
+        unit:
+          type: string
+        location:
+          type: string
+        min_stock:
+          type: integer
+        minimum_order:
+          type: integer
+        opening_stock:
+          type: integer
+          default: 0
+        photo_url:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive]
+          default: active
+
+    ItemUpdate:
+      type: object
+      properties:
+        item_code:
+          type: string
+        item_name:
+          type: string
+        spec:
+          type: string
+        category:
+          type: string
+        unit:
+          type: string
+        location:
+          type: string
+        min_stock:
+          type: integer
+        minimum_order:
+          type: integer
+        opening_stock:
+          type: integer
+        photo_url:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive]
+
+    ItemImportPayload:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemInput"
+
+    ImportResult:
+      type: object
+      required: [success_count, error_count, errors]
+      properties:
+        success_count:
+          type: integer
+        error_count:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              row:
+                type: integer
+              item_code:
+                type: string
+              error:
+                type: string
+
+    # ── Stock Movement schemas ────────────────────────────────────────────────
+    StockMovement:
+      type: object
+      required: [id, item_id, movement_type, quantity, movement_date, created_by, created_at]
+      properties:
+        id:
+          type: integer
+        item_id:
+          type: integer
+        item_code:
+          type: ["string", "null"]
+        item_name:
+          type: ["string", "null"]
+        movement_type:
+          type: string
+          enum: [IN, OUT]
+        quantity:
+          type: integer
+        movement_date:
+          type: string
+          format: date
+        reference_no:
+          type: ["string", "null"]
+        supplier:
+          type: ["string", "null"]
+        department:
+          type: ["string", "null"]
+        requested_by:
+          type: ["string", "null"]
+        issued_by:
+          type: ["string", "null"]
+        purpose:
+          type: ["string", "null"]
+        remarks:
+          type: ["string", "null"]
+        created_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    StockMovementInput:
+      type: object
+      required: [item_id, movement_type, quantity, movement_date]
+      properties:
+        item_id:
+          type: integer
+        movement_type:
+          type: string
+          enum: [IN, OUT]
+        quantity:
+          type: integer
+          minimum: 1
+        movement_date:
+          type: string
+          format: date
+        reference_no:
+          type: string
+        supplier:
+          type: string
+        department:
+          type: string
+        requested_by:
+          type: string
+        issued_by:
+          type: string
+        purpose:
+          type: string
+        remarks:
+          type: string
+
+    # ── Dashboard schemas ─────────────────────────────────────────────────────
+    DashboardSummary:
+      type: object
+      required: [total_items, total_stock, low_stock_count, out_of_stock_count, stock_in_this_month, stock_out_this_month]
+      properties:
+        total_items:
+          type: integer
+        total_stock:
+          type: integer
+        low_stock_count:
+          type: integer
+        out_of_stock_count:
+          type: integer
+        stock_in_this_month:
+          type: integer
+        stock_out_this_month:
+          type: integer
+
+    # ── Profile schemas ───────────────────────────────────────────────────────
+    Profile:
+      type: object
+      required: [id, clerk_user_id, email, role, status, created_at]
+      properties:
+        id:
+          type: integer
+        clerk_user_id:
+          type: string
+        email:
+          type: string
+        full_name:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [admin, storekeeper, technician, viewer]
+        status:
+          type: string
+          enum: [active, inactive]
+        created_at:
+          type: string
+          format: date-time
+
+    ProfileUpdate:
+      type: object
+      properties:
+        full_name:
+          type: string
+        role:
+          type: string
+          enum: [admin, storekeeper, technician, viewer]
+        status:
+          type: string
+          enum: [active, inactive]
+
+    # ── Audit Log schemas ─────────────────────────────────────────────────────
+    AuditLogEntry:
+      type: object
+      required: [id, user_id, action, created_at]
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: string
+        user_email:
+          type: ["string", "null"]
+        action:
+          type: string
+        table_name:
+          type: ["string", "null"]
+        record_id:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        created_at:
+          type: string
+          format: date-time
