@@ -12,21 +12,31 @@ import { Plus, Download, Upload, QrCode, Search, Image as ImageIcon, Edit, Trash
 
 import QRCode from "qrcode";
 
-type SortKey = "category" | "status";
+type SortKey = "code" | "category" | "status";
 type SortDir = "asc" | "desc";
+
+const naturalCompare = (a: string, b: string) =>
+  a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
 
 export function ItemsPage() {
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("code");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const { data: items, isLoading, refetch } = useListItems({ search });
 
   const sortedItems = useMemo(() => {
-    if (!items || !sortKey) return items;
+    if (!items) return items;
     return [...items].sort((a, b) => {
-      const aVal = (sortKey === "category" ? a.category : a.stock_status) ?? "";
-      const bVal = (sortKey === "category" ? b.category : b.stock_status) ?? "";
-      const cmp = aVal.localeCompare(bVal);
+      let cmp = 0;
+      if (sortKey === "code") {
+        cmp = naturalCompare(a.item_code ?? "", b.item_code ?? "");
+      } else if (sortKey === "category") {
+        cmp = naturalCompare(a.category ?? "", b.category ?? "");
+        if (cmp === 0) cmp = naturalCompare(a.item_code ?? "", b.item_code ?? "");
+      } else {
+        cmp = naturalCompare(a.stock_status ?? "", b.stock_status ?? "");
+        if (cmp === 0) cmp = naturalCompare(a.item_code ?? "", b.item_code ?? "");
+      }
       return sortDir === "asc" ? cmp : -cmp;
     });
   }, [items, sortKey, sortDir]);
@@ -133,7 +143,9 @@ export function ItemsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("code")}>
+                Code<SortIcon col="code" />
+              </TableHead>
               <TableHead>Name</TableHead>
               <TableHead className="cursor-pointer select-none" onClick={() => handleSort("category")}>
                 Category<SortIcon col="category" />
