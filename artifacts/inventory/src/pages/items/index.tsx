@@ -115,6 +115,7 @@ export function ItemsPage() {
   const [detailItem, setDetailItem] = useState<Item | null>(null);
   const [detailQr, setDetailQr] = useState<string>("");
   const [photoInput, setPhotoInput] = useState<string>("");
+  const [photoError, setPhotoError] = useState(false);
   const [photoSaving, setPhotoSaving] = useState(false);
   const updateItem = useUpdateItem();
 
@@ -128,6 +129,7 @@ export function ItemsPage() {
   const openDetail = async (item: Item) => {
     setDetailItem(item);
     setPhotoInput(item.photo_url || "");
+    setPhotoError(false);
     const fullUrl = `${window.location.origin}/stock-out?item_code=${item.item_code}`;
     const url = await QRCode.toDataURL(fullUrl, { width: 160 });
     setDetailQr(url);
@@ -383,19 +385,21 @@ export function ItemsPage() {
               </SheetHeader>
 
               {/* Photo preview */}
-              <div className="mb-3 rounded-md overflow-hidden border bg-muted flex items-center justify-center h-52 relative">
-                {photoInput ? (
+              <div className="mb-3 rounded-md border bg-muted flex items-center justify-center h-52 overflow-hidden">
+                {photoInput && !photoError ? (
                   <img
+                    key={photoInput}
                     src={photoInput}
                     alt={detailItem.item_name}
                     className="object-contain h-full w-full"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = "none";
-                      (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty("display", "flex");
-                    }}
+                    onError={() => setPhotoError(true)}
                   />
-                ) : null}
-                {!photoInput && (
+                ) : photoInput && photoError ? (
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground px-4 text-center">
+                    <ImageIcon className="w-8 h-8 opacity-30" />
+                    <span className="text-xs">Could not load image. Make sure the URL is a direct link to an image file (e.g. ending in .jpg or .png).</span>
+                  </div>
+                ) : (
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Camera className="w-10 h-10 opacity-30" />
                     <span className="text-sm">No photo</span>
@@ -406,9 +410,9 @@ export function ItemsPage() {
               {/* Inline photo URL input */}
               <div className="flex gap-2 mb-4">
                 <Input
-                  placeholder="Paste photo URL to preview…"
+                  placeholder="Paste a direct image URL to preview…"
                   value={photoInput}
-                  onChange={(e) => setPhotoInput(e.target.value)}
+                  onChange={(e) => { setPhotoInput(e.target.value); setPhotoError(false); }}
                   className="text-xs h-8"
                 />
                 <Button
