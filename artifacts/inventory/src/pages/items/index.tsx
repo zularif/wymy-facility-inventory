@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useListItems, useImportItems, useDeactivateItem } from "@workspace/api-client-react";
+import { useListItems, useImportItems, useDeactivateItem, useUpdateItem } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { exportToExcel, parseExcel } from "@/lib/excel";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, Pagi
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Download, Upload, QrCode, Search, Image as ImageIcon, Edit, Trash, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Plus, Download, Upload, QrCode, Search, Image as ImageIcon, Camera, Edit, Trash, ChevronUp, ChevronDown, ChevronsUpDown, Check } from "lucide-react";
 import QRCode from "qrcode";
 
 type SortKey = "code" | "category" | "status";
@@ -114,6 +114,9 @@ export function ItemsPage() {
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<Item | null>(null);
   const [detailQr, setDetailQr] = useState<string>("");
+  const [photoInput, setPhotoInput] = useState<string>("");
+  const [photoSaving, setPhotoSaving] = useState(false);
+  const updateItem = useUpdateItem();
 
   const showQr = async (itemCode: string) => {
     const fullUrl = `${window.location.origin}/stock-out?item_code=${itemCode}`;
@@ -124,9 +127,33 @@ export function ItemsPage() {
 
   const openDetail = async (item: Item) => {
     setDetailItem(item);
+    setPhotoInput(item.photo_url || "");
     const fullUrl = `${window.location.origin}/stock-out?item_code=${item.item_code}`;
     const url = await QRCode.toDataURL(fullUrl, { width: 160 });
     setDetailQr(url);
+  };
+
+  const savePhotoUrl = async () => {
+    if (!detailItem) return;
+    setPhotoSaving(true);
+    try {
+      await updateItem.mutateAsync({
+        id: detailItem.id,
+        data: {
+          item_code: detailItem.item_code,
+          item_name: detailItem.item_name,
+          unit: detailItem.unit,
+          photo_url: photoInput || "",
+        },
+      });
+      setDetailItem({ ...detailItem, photo_url: photoInput || null });
+      refetch();
+      toast({ title: "Photo URL saved" });
+    } catch {
+      toast({ title: "Failed to save photo URL", variant: "destructive" });
+    } finally {
+      setPhotoSaving(false);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -355,17 +382,45 @@ export function ItemsPage() {
                 </div>
               </SheetHeader>
 
-              {/* Photo */}
-              {detailItem.photo_url && (
-                <div className="mb-4 rounded-md overflow-hidden border bg-muted flex items-center justify-center h-52">
+              {/* Photo preview */}
+              <div className="mb-3 rounded-md overflow-hidden border bg-muted flex items-center justify-center h-52 relative">
+                {photoInput ? (
                   <img
-                    src={detailItem.photo_url}
+                    src={photoInput}
                     alt={detailItem.item_name}
                     className="object-contain h-full w-full"
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                      (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty("display", "flex");
+                    }}
                   />
-                </div>
-              )}
+                ) : null}
+                {!photoInput && (
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Camera className="w-10 h-10 opacity-30" />
+                    <span className="text-sm">No photo</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Inline photo URL input */}
+              <div className="flex gap-2 mb-4">
+                <Input
+                  placeholder="Paste photo URL to preview…"
+                  value={photoInput}
+                  onChange={(e) => setPhotoInput(e.target.value)}
+                  className="text-xs h-8"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 shrink-0"
+                  disabled={photoSaving || photoInput === (detailItem.photo_url || "")}
+                  onClick={savePhotoUrl}
+                >
+                  {photoSaving ? "…" : <><Check className="w-3 h-3 mr-1" />Save</>}
+                </Button>
+              </div>
 
               {/* Status badge + stock */}
               <div className="flex items-center gap-3 mb-4">
