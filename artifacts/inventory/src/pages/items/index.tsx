@@ -9,12 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink, PaginationEllipsis } from "@/components/ui/pagination";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Download, Upload, QrCode, Search, Image as ImageIcon, Edit, Trash, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import QRCode from "qrcode";
 
 type SortKey = "code" | "category" | "status";
 type SortDir = "asc" | "desc";
+type Item = NonNullable<ReturnType<typeof useListItems>["data"]>[number];
 
 const PAGE_SIZE = 25;
 
@@ -109,12 +112,21 @@ export function ItemsPage() {
 
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [isQrOpen, setIsQrOpen] = useState(false);
+  const [detailItem, setDetailItem] = useState<Item | null>(null);
+  const [detailQr, setDetailQr] = useState<string>("");
 
   const showQr = async (itemCode: string) => {
     const fullUrl = `${window.location.origin}/stock-out?item_code=${itemCode}`;
     const url = await QRCode.toDataURL(fullUrl);
     setQrCodeUrl(url);
     setIsQrOpen(true);
+  };
+
+  const openDetail = async (item: Item) => {
+    setDetailItem(item);
+    const fullUrl = `${window.location.origin}/stock-out?item_code=${item.item_code}`;
+    const url = await QRCode.toDataURL(fullUrl, { width: 160 });
+    setDetailQr(url);
   };
 
   const handleDelete = async (id: number) => {
@@ -236,7 +248,14 @@ export function ItemsPage() {
             ) : pageItems.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.item_code}</TableCell>
-                <TableCell>{item.item_name}</TableCell>
+                <TableCell>
+                  <button
+                    onClick={() => openDetail(item)}
+                    className="text-left hover:underline text-primary font-medium"
+                  >
+                    {item.item_name}
+                  </button>
+                </TableCell>
                 <TableCell>{item.category || "-"}</TableCell>
                 <TableCell>{item.location || "-"}</TableCell>
                 <TableCell className="text-right font-mono">{item.current_stock} {item.unit}</TableCell>
@@ -316,6 +335,93 @@ export function ItemsPage() {
           <p className="text-sm text-muted-foreground text-center mt-4">Scan to quickly stock out this item.</p>
         </DialogContent>
       </Dialog>
+
+      {/* Item Detail Sheet */}
+      <Sheet open={!!detailItem} onOpenChange={(open) => { if (!open) setDetailItem(null); }}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          {detailItem && (
+            <>
+              <SheetHeader className="mb-4">
+                <div className="flex items-start justify-between gap-2 pr-6">
+                  <div>
+                    <SheetTitle className="text-xl">{detailItem.item_name}</SheetTitle>
+                    <p className="text-sm text-muted-foreground font-mono mt-0.5">{detailItem.item_code}</p>
+                  </div>
+                  <Button asChild size="sm">
+                    <Link href={`/items/${detailItem.id}/edit`}>
+                      <Edit className="w-4 h-4 mr-1" /> Edit
+                    </Link>
+                  </Button>
+                </div>
+              </SheetHeader>
+
+              {/* Photo */}
+              {detailItem.photo_url && (
+                <div className="mb-4 rounded-md overflow-hidden border bg-muted flex items-center justify-center h-52">
+                  <img
+                    src={detailItem.photo_url}
+                    alt={detailItem.item_name}
+                    className="object-contain h-full w-full"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                </div>
+              )}
+
+              {/* Status badge + stock */}
+              <div className="flex items-center gap-3 mb-4">
+                <Badge variant={
+                  detailItem.stock_status === "OK" ? "default"
+                  : detailItem.stock_status === "Low Stock" ? "secondary"
+                  : "destructive"
+                }>
+                  {detailItem.stock_status}
+                </Badge>
+                <span className="text-sm font-medium">
+                  Current Stock: <span className="font-mono">{detailItem.current_stock} {detailItem.unit}</span>
+                </span>
+              </div>
+
+              <Separator className="mb-4" />
+
+              {/* Fields grid */}
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mb-4">
+                <div>
+                  <dt className="text-muted-foreground font-medium">Category</dt>
+                  <dd className="mt-0.5">{detailItem.category || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground font-medium">Unit</dt>
+                  <dd className="mt-0.5">{detailItem.unit}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground font-medium">Location / Rack</dt>
+                  <dd className="mt-0.5">{detailItem.location || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground font-medium">Min Stock Level</dt>
+                  <dd className="mt-0.5">{detailItem.min_stock ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground font-medium">Min Order Qty</dt>
+                  <dd className="mt-0.5">{detailItem.minimum_order ?? "—"}</dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="text-muted-foreground font-medium">Specification</dt>
+                  <dd className="mt-0.5">{detailItem.spec || "—"}</dd>
+                </div>
+              </dl>
+
+              <Separator className="mb-4" />
+
+              {/* QR Code */}
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-sm text-muted-foreground font-medium">QR Code — scan to stock out</p>
+                {detailQr && <img src={detailQr} alt="QR Code" className="w-36 h-36" />}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
