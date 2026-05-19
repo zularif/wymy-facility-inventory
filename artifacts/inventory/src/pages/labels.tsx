@@ -52,6 +52,37 @@ function base64ToUint8Array(b64: string): Uint8Array {
   return arr;
 }
 
+async function fetchPhotoForWord(
+  url: string
+): Promise<{ data: Uint8Array; type: "png" | "jpg" } | null> {
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const ct = resp.headers.get("content-type") ?? "";
+    const type: "png" | "jpg" =
+      ct.includes("jpeg") || ct.includes("jpg") || /\.(jpe?g)$/i.test(url) ? "jpg" : "png";
+    return { data: new Uint8Array(await resp.arrayBuffer()), type };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchPhotoAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    return new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 const noBorder = {
   top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
   bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
@@ -96,31 +127,21 @@ async function buildLabelCell(item: Item): Promise<DocxTableCell> {
   const qrB64 = await qrToBase64(`${window.location.origin}/stock-out?item_code=${item.item_code}`);
   const qrData = base64ToUint8Array(qrB64);
 
-  // Right column: QR + photo box stacked
-  const rightCol = new DocxTableCell({
-    width: { size: convertInchesToTwip(RIGHT_W), type: WidthType.DXA },
-    borders: noBorder,
-    verticalAlign: VerticalAlign.TOP,
-    children: [
-      // QR code
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 40 },
-        children: [
-          new ImageRun({
-            data: qrData,
-            transformation: { width: 80, height: 80 },
-            type: "png",
-          }),
-        ],
-      }),
-      new Paragraph({
+  const photo = item.photo_url ? await fetchPhotoForWord(item.photo_url) : null;
+
+  const photoContent = photo
+    ? new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { before: 0, after: 0 },
-        children: [new TextRun({ text: "" })],
-      }),
-      // Photo placeholder — dashed bordered box
-      new DocxTable({
+        children: [
+          new ImageRun({
+            data: photo.data,
+            transformation: { width: 80, height: 72 },
+            type: photo.type,
+          }),
+        ],
+      })
+    : new DocxTable({
         width: { size: convertInchesToTwip(PHOTO_W), type: WidthType.DXA },
         rows: [
           new DocxTableRow({
@@ -143,7 +164,32 @@ async function buildLabelCell(item: Item): Promise<DocxTableCell> {
             ],
           }),
         ],
+      });
+
+  // Right column: QR + photo stacked
+  const rightCol = new DocxTableCell({
+    width: { size: convertInchesToTwip(RIGHT_W), type: WidthType.DXA },
+    borders: noBorder,
+    verticalAlign: VerticalAlign.TOP,
+    children: [
+      // QR code
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 40 },
+        children: [
+          new ImageRun({
+            data: qrData,
+            transformation: { width: 80, height: 80 },
+            type: "png",
+          }),
+        ],
       }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 0, after: 0 },
+        children: [new TextRun({ text: "" })],
+      }),
+      photoContent,
     ],
   });
 
@@ -324,16 +370,33 @@ export function Labels() {
       const qrDataUrl = await QRCode.toDataURL(`${window.location.origin}/stock-out?item_code=${item.item_code}`, { margin: 1 });
       doc.addImage(qrDataUrl, "PNG", x + labelW - 35, y + 5, 28, 28);
 
-      // Photo box placeholder
-      doc.setDrawColor(180, 180, 180);
-      doc.setLineDashPattern([1, 1], 0);
-      doc.rect(x + labelW - 35, y + 36, 28, 22);
-      doc.setFontSize(6);
-      doc.setTextColor(180, 180, 180);
-      doc.text("PHOTO", x + labelW - 24, y + 49, { align: "center" });
-      doc.setLineDashPattern([], 0);
-      doc.setDrawColor(0, 0, 0);
-      doc.setTextColor(0, 0, 0);
+      // Photo: real image if available, otherwise dashed placeholder
+      if (item.photo_url) {
+        const photoDataUrl = await fetchPhotoAsDataUrl(item.photo_url);
+        if (photoDataUrl) {
+          doc.addImage(photoDataUrl, x + labelW - 35, y + 36, 28, 22);
+        } else {
+          doc.setDrawColor(180, 180, 180);
+          doc.setLineDashPattern([1, 1], 0);
+          doc.rect(x + labelW - 35, y + 36, 28, 22);
+          doc.setFontSize(6);
+          doc.setTextColor(180, 180, 180);
+          doc.text("PHOTO", x + labelW - 24, y + 49, { align: "center" });
+          doc.setLineDashPattern([], 0);
+          doc.setDrawColor(0, 0, 0);
+          doc.setTextColor(0, 0, 0);
+        }
+      } else {
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineDashPattern([1, 1], 0);
+        doc.rect(x + labelW - 35, y + 36, 28, 22);
+        doc.setFontSize(6);
+        doc.setTextColor(180, 180, 180);
+        doc.text("PHOTO", x + labelW - 24, y + 49, { align: "center" });
+        doc.setLineDashPattern([], 0);
+        doc.setDrawColor(0, 0, 0);
+        doc.setTextColor(0, 0, 0);
+      }
 
       doc.setFontSize(13);
       doc.setFont("helvetica", "bold");
