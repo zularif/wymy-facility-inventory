@@ -68,116 +68,127 @@ async function fetchPhotoAsDataUrl(url: string): Promise<string | null> {
   } catch { return null; }
 }
 
-/* ─── PDF label renderer ──────────────────────────────────── */
+/* ─── PDF label renderer — A6 × 4 per A4 page ─────────────── */
 
 // Colours
 const NAVY  = [0, 43, 125] as const;   // #002B7D
 const WHITE = [255, 255, 255] as const;
 const BLACK = [20, 20, 20] as const;
-const GRAY  = [130, 130, 130] as const;
+const GRAY  = [150, 150, 150] as const;
 
-// Layout (mm) — A4 portrait, 2 labels per page
-const LX = 10;
-const LW = 190;
-const LH = 135;
-const L_TOP = [8, 8 + LH + 9] as const; // y-start of label 1 and 2
+// A4: 210 × 297 mm  →  2 cols × 2 rows of A6 (105 × 148.5 mm)
+// Small outer margin + tiny inter-label gap
+const LW = 102;   // label width  (3 + 102 + 0 + 102 + 3 = 210)
+const LH = 144;   // label height (2 + 144 + 3 + 144 + 4 = 297)
+const MX = 3;     // outer x margin
+const MY = 2;     // outer y margin
+const GX = 3;     // horizontal gap between columns  (MX+LW+GX+LW+MX = 3+102+3+102+0... adjusted below)
+const GY = 3;     // vertical gap between rows
+
+// Slot positions (lx, ly) for slots 0-3
+// Col0 x = MX = 3,  Col1 x = MX + LW + GX = 108 …but 3+102+3+102+0 = 210, so GX=3 → col1=108? No: 3+102=105, 105+3=108, 108+102=210 ✓
+const SLOTS: [number, number][] = [
+  [MX,            MY],
+  [MX + LW + GX,  MY],
+  [MX,            MY + LH + GY],
+  [MX + LW + GX,  MY + LH + GY],
+];
+// Verify: col1 = 3+102+3 = 108, label ends at 108+102=210 ✓
+// Row1 = 2+144+3 = 149, label ends at 149+144=293, bottom gap = 297-293=4 ✓
 
 function setNavy(doc: jsPDF) { doc.setFillColor(...NAVY); doc.setDrawColor(...NAVY); doc.setTextColor(...NAVY); }
 function setWhiteText(doc: jsPDF) { doc.setTextColor(...WHITE); }
 function setBlackText(doc: jsPDF) { doc.setTextColor(...BLACK); }
-function setGray(doc: jsPDF) { doc.setDrawColor(...GRAY); doc.setTextColor(...GRAY); }
+function setGrayDraw(doc: jsPDF) { doc.setDrawColor(...GRAY); doc.setTextColor(...GRAY); }
 
 async function drawLabel(doc: jsPDF, item: Item, lx: number, ly: number) {
   const qrDataUrl = await QRCode.toDataURL(recordUrl(item.item_code), { margin: 1, width: 200 });
   const photoDataUrl = item.photo_url ? await fetchPhotoAsDataUrl(item.photo_url) : null;
 
-  // ── Outer rounded border ──────────────────────────────────
+  // ── Outer border ─────────────────────────────────────────
   setNavy(doc);
-  doc.setLineWidth(0.7);
-  doc.roundedRect(lx, ly, LW, LH, 3, 3, "S");
+  doc.setLineWidth(0.6);
+  doc.roundedRect(lx, ly, LW, LH, 2, 2, "S");
 
   // ── Header bar ───────────────────────────────────────────
-  setNavy(doc);
-  doc.roundedRect(lx, ly, LW, 20, 3, 3, "F");
-  // Flatten bottom corners of header bar
-  doc.rect(lx, ly + 10, LW, 10, "F");
+  doc.roundedRect(lx, ly, LW, 17, 2, 2, "F");
+  doc.rect(lx, ly + 8, LW, 9, "F");   // flatten bottom corners
 
-  // Header title
   setWhiteText(doc);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(13.5);
-  doc.text("FACILITY INVENTORY CARD", lx + LW / 2, ly + 13, { align: "center" });
+  doc.setFontSize(9.5);
+  doc.text("FACILITY INVENTORY CARD", lx + LW / 2, ly + 10.5, { align: "center" });
 
-  // Decorative chevrons
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.text("// //  //", lx + LW / 2, ly + 18.5, { align: "center" });
+  doc.setFontSize(5.5);
+  doc.text("// //  //", lx + LW / 2, ly + 15.5, { align: "center" });
 
   // ── RIGHT PANEL ──────────────────────────────────────────
-  const rx = lx + 140;  // right panel x-start
-  const ry = ly + 24;   // right panel y-start
+  // Right panel starts at x = lx + 59  (width = LW - 59 - 2 = 41)
+  const rx    = lx + 59;
+  const rw    = LW - 59 - 2;   // 41 mm
+  const ry    = ly + 20;        // content starts below header
 
   // QR code box
-  const qrSize = 44;
+  const qrSize = rw;            // square: 41 mm
   setNavy(doc);
-  doc.setLineWidth(0.5);
+  doc.setLineWidth(0.4);
   doc.roundedRect(rx, ry, qrSize, qrSize, 1, 1, "S");
   doc.addImage(qrDataUrl, "PNG", rx + 1, ry + 1, qrSize - 2, qrSize - 2);
 
   // "SCAN TO RECORD USAGE" bar
-  const scanY = ry + qrSize + 2;
+  const scanY = ry + qrSize + 1.5;
   setNavy(doc);
-  doc.rect(rx, scanY, qrSize, 9, "F");
+  doc.rect(rx, scanY, rw, 7.5, "F");
   setWhiteText(doc);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(5.2);
-  doc.text("SCAN TO RECORD USAGE", rx + qrSize / 2, scanY + 6, { align: "center" });
+  doc.setFontSize(4.5);
+  doc.text("SCAN TO RECORD USAGE", rx + rw / 2, scanY + 5, { align: "center" });
 
   // Photo box
-  const photoY = scanY + 11;
-  const photoH = LH - (photoY - ly) - 6;
-  doc.setLineWidth(0.5);
-  setGray(doc);
-  doc.setLineDashPattern([2, 1.5], 0);
-  doc.roundedRect(rx, photoY, qrSize, photoH, 1, 1, "S");
+  const photoY = scanY + 9;
+  const photoH = LH - (photoY - ly) - 4;
+  doc.setLineWidth(0.4);
+  setGrayDraw(doc);
+  doc.setLineDashPattern([1.5, 1.2], 0);
+  doc.roundedRect(rx, photoY, rw, photoH, 1, 1, "S");
   doc.setLineDashPattern([], 0);
 
   if (photoDataUrl) {
-    doc.addImage(photoDataUrl, rx + 1, photoY + 1, qrSize - 2, photoH - 2);
+    doc.addImage(photoDataUrl, rx + 1, photoY + 1, rw - 2, photoH - 2);
   } else {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
-    setGray(doc);
-    doc.text("PHOTO", rx + qrSize / 2, photoY + photoH / 2 + 2, { align: "center" });
+    doc.setFontSize(5.5);
+    doc.text("PHOTO", rx + rw / 2, photoY + photoH / 2 + 2, { align: "center" });
   }
 
   // ── LEFT PANEL ───────────────────────────────────────────
-  const leftX = lx + 8;
-  const contentY = ly + 24;
+  const leftX   = lx + 3;
+  const maxTextW = 52;   // max width before right panel (59 - 3 - 4 = 52 mm)
+  const contentY = ly + 20;
 
   // Item code badge
   const badgeText = item.item_code;
-  const badgeW = Math.min(doc.getStringUnitWidth(badgeText) * 8.5 * 0.352 + 14, 70);
+  doc.setFontSize(7.5);
+  const badgeW = Math.min(doc.getStringUnitWidth(badgeText) * 7.5 * 0.352 + 8, maxTextW);
   setNavy(doc);
-  doc.roundedRect(leftX, contentY, badgeW, 10, 1.5, 1.5, "F");
+  doc.roundedRect(leftX, contentY, badgeW, 8, 1.2, 1.2, "F");
   setWhiteText(doc);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(badgeText, leftX + badgeW / 2, contentY + 7, { align: "center" });
+  doc.setFontSize(7.5);
+  doc.text(badgeText, leftX + badgeW / 2, contentY + 5.6, { align: "center" });
 
   // Item name
   setBlackText(doc);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  const maxNameW = 125;
-  const nameLines = doc.splitTextToSize(item.item_name, maxNameW);
-  doc.text(nameLines, leftX, contentY + 21);
-  const nameBlockH = nameLines.length * 6;
+  doc.setFontSize(9.5);
+  const nameLines = doc.splitTextToSize(item.item_name, maxTextW);
+  doc.text(nameLines, leftX, contentY + 16);
+  const nameBlockH = nameLines.length * 5;
 
-  // Divider line
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.3);
-  doc.line(leftX, contentY + 21 + nameBlockH + 2, lx + 135, contentY + 21 + nameBlockH + 2);
+  // Thin divider
+  doc.setDrawColor(210, 210, 210);
+  doc.setLineWidth(0.25);
+  doc.line(leftX, contentY + 16 + nameBlockH + 2, lx + 57, contentY + 16 + nameBlockH + 2);
 
   // Detail rows
   const details: { label: string; value: string }[] = [
@@ -189,36 +200,41 @@ async function drawLabel(doc: jsPDF, item: Item, lx: number, ly: number) {
     ...(item.spec ? [{ label: "Spec", value: item.spec }] : []),
   ];
 
-  let rowY = contentY + 21 + nameBlockH + 9;
-  const maxDetailW = 88;
+  // Label column width (widest label is "Min Order" → measure once)
+  const labelColW = 22;   // mm — enough for "Min Order"
+  const colonX    = leftX + 4 + labelColW;  // icon(4) + label
+  const valueX    = colonX + 4;
+  const maxValueW = lx + 57 - valueX - 1;   // remaining width
+
+  let rowY = contentY + 16 + nameBlockH + 8;
 
   for (const d of details) {
-    if (rowY > ly + LH - 5) break;  // overflow guard
+    if (rowY > ly + LH - 4) break;   // overflow guard
 
-    // Small navy circle icon
+    // Icon: small navy circle
     setNavy(doc);
-    doc.setLineWidth(0.4);
-    doc.circle(leftX + 2.5, rowY - 2, 2.5, "S");
+    doc.setLineWidth(0.35);
+    doc.circle(leftX + 2, rowY - 1.5, 2, "S");
 
-    // Label (bold)
+    // Label
     setBlackText(doc);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.text(d.label, leftX + 7, rowY);
+    doc.setFontSize(6.5);
+    doc.text(d.label, leftX + 5.5, rowY);
 
-    // Colon separator
+    // Colon
     doc.setFont("helvetica", "normal");
-    doc.text(":", leftX + 35, rowY);
+    doc.text(":", colonX, rowY);
 
-    // Value (wraps if long)
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(60, 60, 60);
-    const valueLines = doc.splitTextToSize(d.value, maxDetailW);
-    doc.text(valueLines, leftX + 40, rowY);
-    doc.setTextColor(...BLACK);
+    // Value — wrap to fit
+    doc.setFontSize(6.5);
+    doc.setTextColor(55, 55, 55);
+    const valueLines = doc.splitTextToSize(d.value, maxValueW);
+    doc.text(valueLines, valueX, rowY);
+    setBlackText(doc);
 
-    rowY += 8 + (valueLines.length > 1 ? (valueLines.length - 1) * 4 : 0);
+    const extraLines = Math.max(0, valueLines.length - 1);
+    rowY += 7.5 + extraLines * 3.5;
   }
 }
 
@@ -226,9 +242,9 @@ async function exportToPDF(items: Item[]) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
   for (let i = 0; i < items.length; i++) {
-    if (i > 0 && i % 2 === 0) doc.addPage();
-    const slot = i % 2;
-    await drawLabel(doc, items[i], LX, L_TOP[slot as 0 | 1]);
+    if (i > 0 && i % 4 === 0) doc.addPage();
+    const [lx, ly] = SLOTS[i % 4];
+    await drawLabel(doc, items[i], lx, ly);
   }
 
   doc.save("facility_inventory_cards.pdf");
