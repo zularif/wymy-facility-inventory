@@ -208,6 +208,10 @@ export interface DashboardSummary {
   out_of_stock_count: number;
   stock_in_this_month: number;
   stock_out_this_month: number;
+  stock_in_today: number;
+  stock_out_today: number;
+  total_locations: number;
+  total_categories: number;
 }
 
 export interface TopStockOutItem {

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
-import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, History, Scale, AlertTriangle, FileText, Tags, ShieldAlert, Users, LogOut, KeyRound } from "lucide-react";
+import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, FileText, Tags, ShieldCheck, LogOut, KeyRound } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -15,17 +15,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const role = profile.role;
 
   const links = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "storekeeper", "viewer", "technician"] },
-    { href: "/items", label: "Item Master", icon: Package, roles: ["admin", "storekeeper"] },
-    { href: "/stock-in", label: "Stock In", icon: ArrowDownToLine, roles: ["admin", "storekeeper"] },
-    { href: "/stock-out", label: "Stock Out", icon: ArrowUpFromLine, roles: ["admin", "storekeeper", "technician"] },
-    { href: "/movements", label: "Movements", icon: History, roles: ["admin", "storekeeper", "technician"] },
-    { href: "/balance", label: "Stock Balance", icon: Scale, roles: ["admin", "storekeeper", "viewer"] },
-    { href: "/low-stock", label: "Low Stock", icon: AlertTriangle, roles: ["admin", "storekeeper"] },
-    { href: "/reports", label: "Reports", icon: FileText, roles: ["admin", "storekeeper", "viewer"] },
-    { href: "/labels", label: "Rack Labels", icon: Tags, roles: ["admin", "storekeeper"] },
-    { href: "/audit", label: "Audit Log", icon: ShieldAlert, roles: ["admin"] },
-    { href: "/users", label: "Users", icon: Users, roles: ["admin"] },
+    { href: "/dashboard",  label: "Dashboard",   icon: LayoutDashboard, roles: ["admin", "storekeeper", "viewer", "technician"] },
+    { href: "/items",      label: "All Items",    icon: Package,         roles: ["admin", "storekeeper", "viewer", "technician"] },
+    { href: "/stock-in",   label: "Stock In",     icon: ArrowDownToLine, roles: ["admin", "storekeeper"] },
+    { href: "/stock-out",  label: "Stock Out",    icon: ArrowUpFromLine, roles: ["admin", "storekeeper", "technician"] },
+    { href: "/reports",    label: "Reports",      icon: FileText,        roles: ["admin", "storekeeper", "viewer"] },
+    { href: "/labels",     label: "Rack Labels",  icon: Tags,            roles: ["admin", "storekeeper", "technician"] },
+    { href: "/admin",      label: "Admin",        icon: ShieldCheck,     roles: ["admin"] },
   ].filter(link => link.roles.includes(role));
 
   return (
@@ -33,13 +29,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <div className="flex h-screen w-full overflow-hidden bg-gray-50/50">
         <Sidebar>
           <SidebarHeader className="h-16 flex items-center px-4 border-b border-sidebar-border bg-sidebar text-sidebar-foreground">
-            <div className="font-bold text-lg tracking-tight">WYMY Facility Inventory System</div>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
+                <Package className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <div className="font-bold text-sm leading-tight tracking-tight truncate">
+                WYMY Facility<br />Inventory System
+              </div>
+            </div>
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
               {links.map((link) => {
                 const Icon = link.icon;
-                const isActive = location.startsWith(link.href);
+                const isActive = location === link.href || (link.href !== "/dashboard" && location.startsWith(link.href));
                 return (
                   <SidebarMenuItem key={link.href}>
                     <SidebarMenuButton asChild isActive={isActive} tooltip={link.label}>

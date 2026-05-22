@@ -25,7 +25,11 @@ export const GetDashboardSummaryResponse = zod.object({
   "low_stock_count": zod.number(),
   "out_of_stock_count": zod.number(),
   "stock_in_this_month": zod.number(),
-  "stock_out_this_month": zod.number()
+  "stock_out_this_month": zod.number(),
+  "stock_in_today": zod.number(),
+  "stock_out_today": zod.number(),
+  "total_locations": zod.number(),
+  "total_categories": zod.number()
 })
 
 

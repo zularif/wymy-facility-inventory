@@ -794,7 +794,7 @@ components:
     # ── Dashboard schemas ─────────────────────────────────────────────────────
     DashboardSummary:
       type: object
-      required: [total_items, total_stock, low_stock_count, out_of_stock_count, stock_in_this_month, stock_out_this_month]
+      required: [total_items, total_stock, low_stock_count, out_of_stock_count, stock_in_this_month, stock_out_this_month, stock_in_today, stock_out_today, total_locations, total_categories]
       properties:
         total_items:
           type: integer
@@ -807,6 +807,14 @@ components:
         stock_in_this_month:
           type: integer
         stock_out_this_month:
+          type: integer
+        stock_in_today:
+          type: integer
+        stock_out_today:
+          type: integer
+        total_locations:
+          type: integer
+        total_categories:
           type: integer
 
     TopStockOutItem:

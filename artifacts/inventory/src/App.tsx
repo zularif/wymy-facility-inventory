@@ -18,6 +18,7 @@ import { Reports } from "@/pages/reports";
 import { Labels } from "@/pages/labels";
 import { AuditLog } from "@/pages/audit";
 import { Users } from "@/pages/users";
+import { Admin } from "@/pages/admin";
 
 import NotFound from "@/pages/not-found";
 
@@ -76,7 +77,7 @@ function Router() {
       </Route>
 
       <Route path="/items">
-        {() => <ProtectedRoute component={ItemsPage} roles={["admin", "storekeeper"]} />}
+        {() => <ProtectedRoute component={ItemsPage} roles={["admin", "storekeeper", "viewer", "technician"]} />}
       </Route>
 
       <Route path="/stock-in">
@@ -87,8 +88,9 @@ function Router() {
         {() => <ProtectedRoute component={StockOut} roles={["admin", "storekeeper", "technician"]} />}
       </Route>
 
+      {/* Legacy routes — still accessible via direct URL */}
       <Route path="/movements">
-        {() => <ProtectedRoute component={Movements} roles={["admin", "storekeeper", "technician"]} />}
+        {() => <ProtectedRoute component={Movements} roles={["admin", "storekeeper", "viewer", "technician"]} />}
       </Route>
 
       <Route path="/balance">
@@ -99,20 +101,25 @@ function Router() {
         {() => <ProtectedRoute component={LowStock} roles={["admin", "storekeeper"]} />}
       </Route>
 
-      <Route path="/reports">
-        {() => <ProtectedRoute component={Reports} roles={["admin", "storekeeper", "viewer"]} />}
-      </Route>
-
-      <Route path="/labels">
-        {() => <ProtectedRoute component={Labels} roles={["admin", "storekeeper"]} />}
-      </Route>
-
       <Route path="/audit">
         {() => <ProtectedRoute component={AuditLog} roles={["admin"]} />}
       </Route>
 
       <Route path="/users">
         {() => <ProtectedRoute component={Users} roles={["admin"]} />}
+      </Route>
+
+      {/* Main nav routes */}
+      <Route path="/reports">
+        {() => <ProtectedRoute component={Reports} roles={["admin", "storekeeper", "viewer"]} />}
+      </Route>
+
+      <Route path="/labels">
+        {() => <ProtectedRoute component={Labels} roles={["admin", "storekeeper", "technician"]} />}
+      </Route>
+
+      <Route path="/admin">
+        {() => <ProtectedRoute component={Admin} roles={["admin"]} />}
       </Route>
 
       <Route component={NotFound} />

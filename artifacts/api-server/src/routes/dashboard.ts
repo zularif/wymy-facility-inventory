@@ -37,6 +37,7 @@ router.get("/summary", requireAuth, async (req, res) => {
 
   const now = new Date();
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const monthlyIn = allMovements
     .filter(m => m.movement_type === "IN" && m.movement_date >= monthStart)
@@ -46,6 +47,17 @@ router.get("/summary", requireAuth, async (req, res) => {
     .filter(m => m.movement_type === "OUT" && m.movement_date >= monthStart)
     .reduce((acc, m) => acc + m.quantity, 0);
 
+  const todayIn = allMovements
+    .filter(m => m.movement_type === "IN" && m.movement_date === today)
+    .reduce((acc, m) => acc + m.quantity, 0);
+
+  const todayOut = allMovements
+    .filter(m => m.movement_type === "OUT" && m.movement_date === today)
+    .reduce((acc, m) => acc + m.quantity, 0);
+
+  const totalLocations = new Set(items.map(i => i.location).filter(Boolean)).size;
+  const totalCategories = new Set(items.map(i => i.category).filter(Boolean)).size;
+
   return res.json({
     total_items: items.length,
     total_stock,
@@ -53,6 +65,10 @@ router.get("/summary", requireAuth, async (req, res) => {
     out_of_stock_count,
     stock_in_this_month: monthlyIn,
     stock_out_this_month: monthlyOut,
+    stock_in_today: todayIn,
+    stock_out_today: todayOut,
+    total_locations: totalLocations,
+    total_categories: totalCategories,
   });
 });
 
