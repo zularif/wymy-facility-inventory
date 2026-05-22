@@ -86,6 +86,36 @@ paths:
                 items:
                   $ref: "#/components/schemas/ItemWithStock"
 
+  /dashboard/top-stock-out:
+    get:
+      operationId: getDashboardTopStockOut
+      tags: [dashboard]
+      summary: Get top 10 items by total stock out quantity
+      responses:
+        "200":
+          description: Top stock out items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TopStockOutItem"
+
+  /dashboard/monthly-trend:
+    get:
+      operationId: getDashboardMonthlyTrend
+      tags: [dashboard]
+      summary: Get last 6 months stock in vs stock out trend
+      responses:
+        "200":
+          description: Monthly trend data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MonthlyTrend"
+
   # ── ITEMS ──────────────────────────────────────────────────────────────────
   /items:
     get:
@@ -777,6 +807,33 @@ components:
         stock_in_this_month:
           type: integer
         stock_out_this_month:
+          type: integer
+
+    TopStockOutItem:
+      type: object
+      required: [item_id, item_code, item_name, total_out]
+      properties:
+        item_id:
+          type: integer
+        item_code:
+          type: string
+        item_name:
+          type: string
+        category:
+          type: ["string", "null"]
+        total_out:
+          type: integer
+
+    MonthlyTrend:
+      type: object
+      required: [month, stock_in, stock_out]
+      properties:
+        month:
+          type: string
+          description: "YYYY-MM"
+        stock_in:
+          type: integer
+        stock_out:
           type: integer
 
     # ── Profile schemas ───────────────────────────────────────────────────────

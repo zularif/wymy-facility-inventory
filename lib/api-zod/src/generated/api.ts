@@ -84,6 +84,30 @@ export const GetDashboardLowStockResponse = zod.array(GetDashboardLowStockRespon
 
 
 /**
+ * @summary Get top 10 items by total stock out quantity
+ */
+export const GetDashboardTopStockOutResponseItem = zod.object({
+  "item_id": zod.number(),
+  "item_code": zod.string(),
+  "item_name": zod.string(),
+  "category": zod.string().nullish(),
+  "total_out": zod.number()
+})
+export const GetDashboardTopStockOutResponse = zod.array(GetDashboardTopStockOutResponseItem)
+
+
+/**
+ * @summary Get last 6 months stock in vs stock out trend
+ */
+export const GetDashboardMonthlyTrendResponseItem = zod.object({
+  "month": zod.string().describe('YYYY-MM'),
+  "stock_in": zod.number(),
+  "stock_out": zod.number()
+})
+export const GetDashboardMonthlyTrendResponse = zod.array(GetDashboardMonthlyTrendResponseItem)
+
+
+/**
  * @summary List all items with current stock
  */
 export const ListItemsQueryParams = zod.object({

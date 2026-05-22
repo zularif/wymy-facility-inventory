@@ -210,6 +210,22 @@ export interface DashboardSummary {
   stock_out_this_month: number;
 }
 
+export interface TopStockOutItem {
+  item_id: number;
+  item_code: string;
+  item_name: string;
+  /** @nullable */
+  category?: string | null;
+  total_out: number;
+}
+
+export interface MonthlyTrend {
+  /** YYYY-MM */
+  month: string;
+  stock_in: number;
+  stock_out: number;
+}
+
 export type ProfileRole = typeof ProfileRole[keyof typeof ProfileRole];
 
 

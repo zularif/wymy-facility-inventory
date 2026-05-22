@@ -1,0 +1,121 @@
+Please update the Dashboard page for my WYMY Facility Inventory System.
+
+Dashboard must show these main indicators and sections:
+
+1. KPI Cards at the top
+Create clean summary cards for:
+- Total Items
+- Stock Alert
+- Low Stock
+- Zero Stock
+- Total Stock In
+- Total Stock Out
+
+Stock Alert should combine:
+- Low Stock items
+- Zero Stock items
+
+Use clear colors:
+- Total Items = blue
+- Stock Alert = red or orange
+- Low Stock = orange
+- Zero Stock = red
+- Stock In = green
+- Stock Out = purple or dark blue
+
+2. Stock Alert Item List
+Add a table section called "Stock Alert Items".
+
+This table should show all items that are low stock or zero stock.
+
+Table columns:
+- Item ID
+- Item Name
+- Category
+- Location
+- Current Stock
+- Minimum Order
+- Status
+
+Status logic:
+- If Current Stock = 0, show "Zero Stock"
+- If Current Stock > 0 and Current Stock <= Minimum Order, show "Low Stock"
+- If Current Stock > Minimum Order, do not show in this table
+
+Use badge colors:
+- Zero Stock = red badge
+- Low Stock = orange badge
+
+Add a button or link:
+- View All Items
+- Export Alert List
+
+3. Most Stock Out Items
+Add a chart section called "Most Stock Out Items".
+
+Show items with the highest stock out quantity.
+
+Use horizontal bar chart if possible.
+
+Chart data:
+- Item Name
+- Total Stock Out Quantity
+
+Show Top 10 items only.
+
+If chart library is not available, use a simple ranked table.
+
+Table columns:
+- Rank
+- Item Name
+- Category
+- Total Stock Out Quantity
+
+4. Stock In and Stock Out Summary
+Add a simple chart or summary section showing:
+- Total Stock In
+- Total Stock Out
+
+If possible, show monthly trend:
+- Month
+- Stock In Quantity
+- Stock Out Quantity
+
+Use bar chart or line chart.
+
+5. Dashboard layout
+Please arrange dashboard like this:
+
+Top:
+KPI cards
+
+Middle left:
+Stock Alert Items table
+
+Middle right:
+Most Stock Out Items chart or table
+
+Bottom:
+Stock In vs Stock Out monthly trend
+
+6. Data logic
+Please calculate values from existing inventory data, stock in records, and stock out records.
+
+Make sure:
+- Total Items count from all active items
+- Low Stock count where current stock > 0 and current stock <= minimum order
+- Zero Stock count where current stock = 0
+- Stock Alert count = Low Stock + Zero Stock
+- Total Stock In count from stock in transaction quantity
+- Total Stock Out count from stock out transaction quantity
+- Most Stock Out Items calculated by grouping stock out transactions by item
+
+7. Keep design
+Keep the current dark sidebar theme.
+Dashboard content should look modern, clean, and responsive.
+Use cards, badges, tables, and charts.
+Make sure it works on desktop and mobile.
+
+8. Do not break existing features
+Do not delete any existing page or function.
+Only update dashboard layout and dashboard data calculation.

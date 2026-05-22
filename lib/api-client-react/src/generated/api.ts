@@ -34,10 +34,12 @@ import type {
   ListAuditLogParams,
   ListItemsParams,
   ListStockMovementsParams,
+  MonthlyTrend,
   Profile,
   ProfileUpdate,
   StockMovement,
-  StockMovementInput
+  StockMovementInput,
+  TopStockOutItem
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -355,6 +357,160 @@ export function useGetDashboardLowStock<TData = Awaited<ReturnType<typeof getDas
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetDashboardLowStockQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetDashboardTopStockOutUrl = () => {
+
+
+
+
+  return `/api/dashboard/top-stock-out`
+}
+
+/**
+ * @summary Get top 10 items by total stock out quantity
+ */
+export const getDashboardTopStockOut = async ( options?: RequestInit): Promise<TopStockOutItem[]> => {
+
+  return customFetch<TopStockOutItem[]>(getGetDashboardTopStockOutUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDashboardTopStockOutQueryKey = () => {
+    return [
+    `/api/dashboard/top-stock-out`
+    ] as const;
+    }
+
+
+export const getGetDashboardTopStockOutQueryOptions = <TData = Awaited<ReturnType<typeof getDashboardTopStockOut>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardTopStockOut>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDashboardTopStockOutQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardTopStockOut>>> = ({ signal }) => getDashboardTopStockOut({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardTopStockOut>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDashboardTopStockOutQueryResult = NonNullable<Awaited<ReturnType<typeof getDashboardTopStockOut>>>
+export type GetDashboardTopStockOutQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get top 10 items by total stock out quantity
+ */
+
+export function useGetDashboardTopStockOut<TData = Awaited<ReturnType<typeof getDashboardTopStockOut>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardTopStockOut>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDashboardTopStockOutQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetDashboardMonthlyTrendUrl = () => {
+
+
+
+
+  return `/api/dashboard/monthly-trend`
+}
+
+/**
+ * @summary Get last 6 months stock in vs stock out trend
+ */
+export const getDashboardMonthlyTrend = async ( options?: RequestInit): Promise<MonthlyTrend[]> => {
+
+  return customFetch<MonthlyTrend[]>(getGetDashboardMonthlyTrendUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDashboardMonthlyTrendQueryKey = () => {
+    return [
+    `/api/dashboard/monthly-trend`
+    ] as const;
+    }
+
+
+export const getGetDashboardMonthlyTrendQueryOptions = <TData = Awaited<ReturnType<typeof getDashboardMonthlyTrend>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardMonthlyTrend>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDashboardMonthlyTrendQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardMonthlyTrend>>> = ({ signal }) => getDashboardMonthlyTrend({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardMonthlyTrend>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDashboardMonthlyTrendQueryResult = NonNullable<Awaited<ReturnType<typeof getDashboardMonthlyTrend>>>
+export type GetDashboardMonthlyTrendQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get last 6 months stock in vs stock out trend
+ */
+
+export function useGetDashboardMonthlyTrend<TData = Awaited<ReturnType<typeof getDashboardMonthlyTrend>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardMonthlyTrend>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDashboardMonthlyTrendQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
