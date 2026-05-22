@@ -16,6 +16,7 @@ import { Balance } from "@/pages/balance";
 import { LowStock } from "@/pages/low-stock";
 import { Reports } from "@/pages/reports";
 import { Labels } from "@/pages/labels";
+import { RecordUsage } from "@/pages/record";
 import { AuditLog } from "@/pages/audit";
 import { Users } from "@/pages/users";
 import { Admin } from "@/pages/admin";
@@ -116,6 +117,10 @@ function Router() {
 
       <Route path="/labels">
         {() => <ProtectedRoute component={Labels} roles={["admin", "storekeeper", "technician"]} />}
+      </Route>
+
+      <Route path="/record">
+        {() => <ProtectedRoute component={RecordUsage} roles={["admin", "storekeeper", "technician"]} />}
       </Route>
 
       <Route path="/admin">
