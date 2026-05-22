@@ -12,8 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Package, AlertTriangle, ArrowDownToLine, ArrowUpFromLine,
-  TrendingDown, XCircle, Download, ExternalLink,
-  Zap, Bell, Bookmark,
+  Download, ExternalLink,
+  Zap, Bookmark,
 } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -71,19 +71,19 @@ function QuickActions({ role }: { role: string }) {
       <CardContent className="space-y-2">
         {(role === "admin" || role === "storekeeper") && (
           <Link href="/stock-in">
-            <Button className="w-full justify-start gap-2 bg-emerald-600 hover:bg-emerald-700 text-white h-9">
+            <Button className="w-full justify-start gap-2 bg-green-600 hover:bg-green-700 text-white h-9">
               <ArrowDownToLine className="w-4 h-4" /> New Stock In
             </Button>
           </Link>
         )}
         <Link href="/stock-out">
-          <Button className="w-full justify-start gap-2 bg-purple-600 hover:bg-purple-700 text-white h-9">
+          <Button className="w-full justify-start gap-2 bg-orange-500 hover:bg-orange-600 text-white h-9">
             <ArrowUpFromLine className="w-4 h-4" /> New Stock Out
           </Button>
         </Link>
         {(role === "admin" || role === "storekeeper") && (
           <Link href="/items/new">
-            <Button variant="outline" className="w-full justify-start gap-2 h-9">
+            <Button className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white h-9">
               <Package className="w-4 h-4" /> Add New Item
             </Button>
           </Link>
@@ -117,43 +117,6 @@ function StockSummary({ summary }: { summary: DashboardSummary | undefined }) {
   );
 }
 
-function SystemNotifications({ summary, alertItems }: {
-  summary: DashboardSummary | undefined;
-  alertItems: ItemWithStock[] | undefined;
-}) {
-  const notes = [];
-  if ((summary?.out_of_stock_count ?? 0) > 0)
-    notes.push({ text: `${summary!.out_of_stock_count} items out of stock — take action immediately`, level: "error" });
-  if ((summary?.low_stock_count ?? 0) > 0)
-    notes.push({ text: `${summary!.low_stock_count} item${summary!.low_stock_count > 1 ? "s" : ""} low stock — check and restock`, level: "warn" });
-  if ((summary?.stock_in_today ?? 0) > 0)
-    notes.push({ text: `Stock In received: ${summary!.stock_in_today} units today`, level: "info" });
-  if ((summary?.stock_out_today ?? 0) > 0)
-    notes.push({ text: `Stock Out issued: ${summary!.stock_out_today} units today`, level: "info" });
-  if (notes.length === 0)
-    notes.push({ text: "All stock levels are healthy", level: "info" });
-
-  const dot: Record<string, string> = {
-    error: "bg-red-500",
-    warn:  "bg-orange-400",
-    info:  "bg-emerald-500",
-  };
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2"><Bell className="w-4 h-4 text-orange-500" />System Notifications</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {notes.map((n, i) => (
-          <div key={i} className="flex items-start gap-2.5 py-1.5 border-b last:border-0">
-            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${dot[n.level]}`} />
-            <p className="text-xs text-muted-foreground leading-relaxed">{n.text}</p>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
 
 function Shortcuts({ summary }: { summary: DashboardSummary | undefined }) {
   const items = [
@@ -226,11 +189,9 @@ export function Dashboard() {
           Array.from<number>({ length: 6 }).map((_v, i) => <div key={i} className="h-28 bg-muted rounded-lg animate-pulse" />)
         ) : (
           <>
-            <KpiCard title="Total Items"      value={summary?.total_items ?? 0}       icon={<Package       className="w-4 h-4 text-blue-600"    />} bg="bg-blue-500/10"    sub="Active items" />
-            <KpiCard title="Stock Alert"      value={alertCount}                       icon={<AlertTriangle className="w-4 h-4 text-red-600"     />} bg="bg-red-500/10"     sub={`${summary?.low_stock_count ?? 0} low · ${summary?.out_of_stock_count ?? 0} zero`} />
-            <KpiCard title="Low Stock"        value={summary?.low_stock_count ?? 0}    icon={<TrendingDown  className="w-4 h-4 text-orange-600"  />} bg="bg-orange-500/10"  sub="Below min level" />
-            <KpiCard title="Zero Stock"       value={summary?.out_of_stock_count ?? 0} icon={<XCircle      className="w-4 h-4 text-red-600"     />} bg="bg-red-500/10"     sub="Out of stock" />
-            <KpiCard title="Stock In (Month)" value={summary?.stock_in_this_month ?? 0} icon={<ArrowDownToLine className="w-4 h-4 text-emerald-600" />} bg="bg-emerald-500/10" sub="This month" />
+            <KpiCard title="Total Items"       value={summary?.total_items ?? 0}        icon={<Package        className="w-4 h-4 text-blue-600"    />} bg="bg-blue-500/10"    sub="Active items" />
+            <KpiCard title="Stock Alert"       value={alertCount}                        icon={<AlertTriangle  className="w-4 h-4 text-red-600"     />} bg="bg-red-500/10"     sub={`${summary?.low_stock_count ?? 0} low · ${summary?.out_of_stock_count ?? 0} zero`} />
+            <KpiCard title="Stock In (Month)"  value={summary?.stock_in_this_month ?? 0} icon={<ArrowDownToLine className="w-4 h-4 text-emerald-600" />} bg="bg-emerald-500/10" sub="This month" />
             <KpiCard title="Stock Out (Month)" value={summary?.stock_out_this_month ?? 0} icon={<ArrowUpFromLine className="w-4 h-4 text-purple-600" />} bg="bg-purple-500/10" sub="This month" />
           </>
         )}
@@ -412,7 +373,6 @@ export function Dashboard() {
         <div className="space-y-4">
           <QuickActions role={role} />
           <StockSummary summary={summary} />
-          <SystemNotifications summary={summary} alertItems={alertItems} />
           <Shortcuts summary={summary} />
         </div>
       </div>
