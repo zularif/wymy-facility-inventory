@@ -15,7 +15,10 @@ export const pool = new Pool({
   ssl: process.env.DATABASE_URL?.includes("localhost") ? false : { rejectUnauthorized: false },
 });
 
-// Log actual connection errors on startup
+// Log connection string format (password masked) and test connection
+const maskedUrl = process.env.DATABASE_URL?.replace(/:([^:@]+)@/, ":***@") ?? "(not set)";
+console.log("[db] Connecting to:", maskedUrl);
+
 pool.connect()
   .then(client => { client.release(); console.log("[db] Connection OK"); })
   .catch(err => console.error("[db] Connection FAILED:", err.message));
