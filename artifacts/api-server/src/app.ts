@@ -68,18 +68,25 @@ app.use("/api/auth/login", authRateLimit);
 
 const PgSession = connectPgSimple(session);
 
-const require = createRequire(import.meta.url);
-const pgSimpleDir = path.dirname(require.resolve("connect-pg-simple"));
-const schemaFile = path.join(pgSimpleDir, "table.sql");
+const isProduction = process.env.NODE_ENV === "production";
+
+// In production (Vercel serverless) the table already exists in Supabase —
+// skip schemaFile resolution which relies on local filesystem paths.
+const pgSessionConfig: connectPgSimple.PGStoreOptions = {
+  pool,
+  tableName: "user_sessions",
+  createTableIfMissing: !isProduction,
+};
+
+if (!isProduction) {
+  const require = createRequire(import.meta.url);
+  const pgSimpleDir = path.dirname(require.resolve("connect-pg-simple"));
+  pgSessionConfig.schemaFile = path.join(pgSimpleDir, "table.sql");
+}
 
 app.use(
   session({
-    store: new PgSession({
-      pool,
-      tableName: "user_sessions",
-      schemaFile,
-      createTableIfMissing: true,
-    }),
+    store: new PgSession(pgSessionConfig),
     secret: process.env.SESSION_SECRET ?? "dev-secret-change-me",
     resave: false,
     saveUninitialized: false,
