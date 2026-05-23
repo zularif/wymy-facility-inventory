@@ -5,7 +5,11 @@ import path from "path";
 
 const isReplit = process.env.REPL_ID !== undefined;
 const port = Number(process.env.PORT ?? 5173);
-const basePath = process.env.BASE_PATH ?? "/";
+// In Replit dev, BASE_PATH is set to the artifact path prefix (e.g. "/").
+// In Vercel production builds, BASE_PATH is not set — always use "/".
+const basePath = process.env.NODE_ENV === "production"
+  ? "/"
+  : (process.env.BASE_PATH ?? "/");
 
 export default defineConfig({
   base: basePath,
