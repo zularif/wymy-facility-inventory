@@ -1,7 +1,7 @@
 {
   "version": 2,
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm --filter @workspace/inventory run build && cp -r artifacts/inventory/dist ./dist",
+  "buildCommand": "pnpm --filter @workspace/inventory run build && mkdir -p dist && cp -r artifacts/inventory/dist/. ./dist",
   "outputDirectory": "dist",
   "framework": null,
   "functions": {
