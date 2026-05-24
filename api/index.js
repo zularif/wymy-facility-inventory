@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   try {
-    const { default: app } = await import("../artifacts/api-server/src/app");
+    const { default: app } = await import("../artifacts/api-server/dist/app.mjs");
     await new Promise((resolve, reject) => {
       app(req, res, (err) => {
         if (err) reject(err);
