@@ -26,14 +26,17 @@ export function SignIn() {
         body: JSON.stringify({ email, password }),
       });
 
-      if (!res.ok) throw new Error("Invalid credentials");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(`${res.status}: ${body.error ?? res.statusText}`);
+      }
 
       const data = await res.json();
       login(data.profile ?? data, redirectTo);
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: "Please check your credentials and try again.",
+        description: error instanceof Error ? error.message : "Please check your credentials and try again.",
         variant: "destructive",
       });
     } finally {
