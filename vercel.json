@@ -1,7 +1,7 @@
 {
   "version": 2,
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm --filter @workspace/inventory run build",
+  "buildCommand": "pnpm run vercel-build",
   "outputDirectory": "dist",
   "framework": null,
   "functions": {
