@@ -13,6 +13,10 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Trust Vercel's reverse proxy so req.secure is correct and
+// secure session cookies are set properly over HTTPS.
+app.set("trust proxy", 1);
+
 app.use(
   helmet({
     contentSecurityPolicy: {
